@@ -1,0 +1,55 @@
+# Core Framework
+fastapi
+uvicorn[standard]
+python-multipart
+
+# LangChain Ecosystem
+langchain
+langchain-core
+langchain-community
+langchain-openai
+langchain-text-splitters
+langgraph
+langserve
+
+# Document Processing
+pymupdf
+unstructured[pdf]
+python-docx
+beautifulsoup4
+
+# Vector Store
+qdrant-client
+langchain-qdrant
+chromadb
+
+# Embeddings and LLM
+openai
+tiktoken
+
+# Observability
+langsmith
+
+# BM25 for Hybrid Retrieval
+rank-bm25
+
+# Reranking
+sentence-transformers
+
+# Language Detection
+langdetect
+
+# Async Task Queue
+celery
+redis
+
+# Utilities
+pydantic
+pydantic-settings
+python-dotenv
+aiofiles
+
+# Testing
+pytest
+pytest-asyncio
+httpx
