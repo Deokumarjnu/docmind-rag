@@ -17,6 +17,12 @@ class ContentType(str, Enum):
     CODE = "code"
     HANDWRITING = "handwriting"
     MIXED = "mixed"
+    # Additional types from vision processor
+    DIAGRAM = "diagram"
+    PHOTO = "photo"
+    GRAPH = "graph"
+    FLOWCHART = "flowchart"
+    OTHER = "other"
 
 
 class ExtractionMethod(str, Enum):

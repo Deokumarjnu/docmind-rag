@@ -240,13 +240,13 @@ def get_extraction_strategy(page_type: PageType) -> str:
         
     Returns:
         Strategy name: 'pymupdf', 'unstructured_elements', 
-                      'unstructured_auto', or 'ocr'
+                      'unstructured_auto', 'ocr', or 'vision_llm'
     """
     strategies = {
         PageType.TEXT: "pymupdf",
         PageType.TABLE: "unstructured_elements",
-        PageType.IMAGE: "ocr",
-        PageType.CHART: "ocr",  # Will use vision model later
+        PageType.IMAGE: "vision_llm",  # Use vision LLM for images
+        PageType.CHART: "vision_llm",  # Use vision LLM for charts/diagrams/figures
         PageType.CODE: "pymupdf",
         PageType.HANDWRITING: "vision_llm",
         PageType.MIXED: "unstructured_auto",

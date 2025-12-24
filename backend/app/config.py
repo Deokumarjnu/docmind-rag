@@ -31,21 +31,31 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Document Processing
-    chunk_size: int = 700
-    chunk_overlap: int = 100
+    # Chunk size: 1000 chars (~250 tokens) - good balance of context and precision
+    # Overlap: 200 chars (20%) - prevents information loss at boundaries
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
     max_parallel_workers: int = 8
+    
+    # Large PDF optimizations
+    vision_batch_size: int = 10          # Process vision pages in batches
+    max_vision_pages: int = 100          # Limit vision API calls for cost control
+    embedding_batch_size: int = 100      # Batch size for embedding API calls
+    use_vision_for_images: bool = True   # Toggle vision LLM for images/charts
 
     # Embedding Model
     embedding_model: str = "text-embedding-3-large"
     embedding_dimensions: int = 3072
 
-    # LLM Settings
-    llm_model: str = "gpt-4o"
+    # LLM Settings (GPT-5.2: 400K context, better reasoning, fewer hallucinations)
+    # Note: gpt-4o-mini is used for fast validation tasks (query expansion, reranking)
+    llm_model: str = "gpt-5.2"
     llm_temperature: float = 0.0
-    llm_max_tokens: int = 4096
+    llm_max_tokens: int = 8192  # GPT-5.2 supports up to 128K output
+    fast_llm_model: str = "gpt-4o-mini"  # For quick validation/expansion tasks
 
-    # Vision Model
-    vision_model: str = "gpt-4o"
+    # Vision Model (GPT-5.2: improved CharXiv reasoning 93.9% vs 75.7%)
+    vision_model: str = "gpt-5.2"
 
     # Upload Settings
     max_upload_size_mb: int = 100

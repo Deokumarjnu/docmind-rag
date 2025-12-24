@@ -1,6 +1,6 @@
 """Vision LLM-based handwriting extraction.
 
-This module uses GPT-4o vision capabilities to accurately transcribe
+This module uses GPT-5.2 vision capabilities to accurately transcribe
 handwritten text, which is far superior to traditional OCR.
 """
 
@@ -32,7 +32,7 @@ def get_vision_model() -> ChatOpenAI:
 def get_detection_model() -> ChatOpenAI:
     """Get a faster model for detection tasks."""
     return ChatOpenAI(
-        model="gpt-4o-mini",
+        model=settings.fast_llm_model,
         max_tokens=50,
         api_key=settings.openai_api_key,
     )

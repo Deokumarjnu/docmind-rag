@@ -146,7 +146,7 @@ class LLMReranker:
         from langchain_openai import ChatOpenAI
         
         self.model = ChatOpenAI(
-            model=model_name or "gpt-4o-mini",
+            model=model_name or settings.fast_llm_model,
             temperature=0,
             api_key=settings.openai_api_key,
         )

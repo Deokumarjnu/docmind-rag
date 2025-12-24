@@ -90,7 +90,7 @@ def create_validate_retrieval_node():
     """Create the retrieval validation node."""
     
     model = ChatOpenAI(
-        model="gpt-4o-mini",
+        model=settings.fast_llm_model,  # Use fast model for validation
         temperature=0,
         api_key=settings.openai_api_key,
     )
@@ -218,7 +218,7 @@ def create_validate_answer_node():
     """Create the answer validation node."""
     
     model = ChatOpenAI(
-        model="gpt-4o-mini",
+        model=settings.fast_llm_model,  # Use fast model for validation
         temperature=0,
         api_key=settings.openai_api_key,
     )

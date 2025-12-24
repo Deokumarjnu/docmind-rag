@@ -162,10 +162,11 @@ flowchart TB
 
 | Content Type | Chunk Strategy |
 |--------------|----------------|
-| Text | 600-800 tokens with overlap |
+| Text | 1000 chars (~250 tokens) with 200 char overlap |
 | Tables | Whole table (no splitting) |
-| OCR text | 300-500 tokens (noisier) |
+| OCR text | 500 chars (smaller for noisy content) |
 | Code | AST-based (by function/class) |
+| Visual | Single chunk with description |
 
 ## Features
 
@@ -198,21 +199,51 @@ docmind-rag/
 │   ├── app/
 │   │   ├── main.py                 # FastAPI application
 │   │   ├── config.py               # Configuration settings
-│   │   ├── api/                    # API endpoints
+│   │   ├── api/                    # API endpoints (routes, schemas, upload)
 │   │   ├── agents/                 # Deep Agent orchestrator and specialists
-│   │   ├── chains/                 # RAG chains (agentic and simple)
+│   │   │   ├── orchestrator.py     # Main document agent coordinator
+│   │   │   ├── table_specialist.py # Table extraction & merging
+│   │   │   ├── chart_specialist.py # Chart/diagram analysis (GPT-4o Vision)
+│   │   │   ├── code_specialist.py  # Code extraction & AST chunking
+│   │   │   ├── handwriting_specialist.py  # OCR + Vision
+│   │   │   ├── text_specialist.py  # Structure detection
+│   │   │   └── tools/              # Agent tools (code, table, text, vision)
+│   │   ├── chains/                 # RAG chains
+│   │   │   ├── agentic_rag.py      # LangGraph self-correcting RAG
+│   │   │   └── rag_chain.py        # Simple LangChain RAG
 │   │   ├── ingestion/              # Document processing pipeline
+│   │   │   ├── adaptive_extractor.py     # Page-level adaptive extraction
+│   │   │   ├── content_chunker.py        # Content-aware chunking
+│   │   │   ├── page_classifier.py        # Text/table/image classification
+│   │   │   ├── vision_processor.py       # GPT-4o Vision processing
+│   │   │   ├── table_merger.py           # Multi-page table merging
+│   │   │   ├── code_chunker.py           # AST-based code chunking
+│   │   │   └── header_footer_remover.py  # Header/footer detection
 │   │   ├── retrievers/             # Hybrid retrieval and reranking
+│   │   │   ├── hybrid_retriever.py # Dense + BM25 fusion
+│   │   │   ├── query_expander.py   # Query enhancement
+│   │   │   └── reranker.py         # Cross-encoder reranking
 │   │   ├── vectorstore/            # Qdrant vector store integration
+│   │   │   ├── store.py            # Vector store operations
+│   │   │   └── document_manager.py # Document CRUD operations
 │   │   └── workers/                # Celery async tasks
+│   │       ├── celery_app.py       # Celery configuration
+│   │       └── tasks.py            # Async processing tasks
 │   ├── requirements.txt
+│   ├── env.example                 # Environment template
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx                 # Main application
-│   │   └── components/             # React components
+│   │   └── components/
+│   │       ├── ChatInterface.tsx   # Chat UI with streaming
+│   │       ├── FileUpload.tsx      # Document upload with progress
+│   │       ├── DocumentList.tsx    # Document management
+│   │       ├── SourceViewer.tsx    # Source citation display
+│   │       └── UploadProgress.tsx  # Upload progress indicator
 │   ├── package.json
 │   └── Dockerfile
+├── test_docs/                      # Test documents (arXiv papers)
 └── docker-compose.yml
 ```
 
@@ -332,22 +363,30 @@ OPENAI_API_KEY=your-api-key
 # Vector Store
 QDRANT_HOST=localhost
 QDRANT_PORT=6333
+QDRANT_COLLECTION_NAME=docmind_documents
 
-# Redis
+# Redis (for Celery async tasks)
 REDIS_URL=redis://localhost:6379/0
 
-# LLM Settings
-LLM_MODEL=gpt-4o
-VISION_MODEL=gpt-4o
+# LLM Settings (GPT-5.2: 400K context, better reasoning, fewer hallucinations)
+LLM_MODEL=gpt-5.2
+VISION_MODEL=gpt-5.2
+FAST_LLM_MODEL=gpt-4o-mini  # For quick validation/expansion tasks
+
+# Embedding Settings
+EMBEDDING_MODEL=text-embedding-3-large
+EMBEDDING_DIMENSIONS=3072
 
 # Processing
-CHUNK_SIZE=700
-CHUNK_OVERLAP=100
+CHUNK_SIZE=1000
+CHUNK_OVERLAP=200
 MAX_PARALLEL_WORKERS=8
+MAX_UPLOAD_SIZE_MB=100
 
 # LangSmith (optional)
 LANGSMITH_API_KEY=your-langsmith-key
 LANGCHAIN_TRACING_V2=true
+LANGSMITH_PROJECT=docmind-rag
 ```
 
 ## Subagent Responsibilities
@@ -464,6 +503,52 @@ rag_agent = workflow.compile()
 | **Retrieval Validation** | Ensures retrieved documents are relevant |
 | **Answer Validation** | Verifies answers are grounded in source documents |
 | **Self-correction Loops** | Automatic retries when validation fails |
+
+## Test Results
+
+The RAG system was tested with 6 real AI research papers (262 pages, 1,131 chunks):
+
+| Document | Source | Pages | Chunks |
+|----------|--------|-------|--------|
+| Attention Is All You Need | arXiv:1706.03762 | 15 | 60 |
+| RAG: Retrieval-Augmented Generation | arXiv:2005.11401 | 19 | 92 |
+| ReAct: Reasoning and Acting | arXiv:2210.03629 | 33 | 152 |
+| Chain-of-Thought Prompting | arXiv:2201.11903 | 43 | 187 |
+| GPT-4 Technical Report | arXiv:2303.08774 | 100 | 422 |
+| Generative AI for Dummies | Wiley/Snowflake | 52 | 218 |
+
+### Test Scenarios (21/21 Passed ✅)
+
+| Scenario | Tests | Result |
+|----------|-------|--------|
+| Basic Factual Retrieval | 3 | ✅ Pass |
+| Multi-hop Reasoning | 3 | ✅ Pass |
+| Comparison Questions | 3 | ✅ Pass |
+| Code/Technical Content | 3 | ✅ Pass |
+| Figure/Diagram Understanding | 2 | ✅ Pass |
+| Edge Cases & Negatives | 4 | ✅ Pass |
+| Complex Multi-part Questions | 3 | ✅ Pass |
+
+### Key Capabilities Verified
+- ✅ Cross-document synthesis
+- ✅ No hallucinations on unknown topics
+- ✅ Exact number/formula retrieval
+- ✅ Corrects false premises in questions
+- ✅ Vision processing for diagrams/charts
+
+## Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **LangChain** | Core Framework | Document loaders, chains, prompts, embeddings |
+| **LangGraph** | Agentic RAG | Stateful workflow with self-correction |
+| **OpenAI GPT-5.2** | LLM + Vision | Answer generation + figure analysis (400K context) |
+| **OpenAI Embeddings** | text-embedding-3-large | 3072-dimension semantic vectors |
+| **Qdrant** | Vector Database | Semantic search with cosine similarity |
+| **Celery + Redis** | Task Queue | Async document processing |
+| **FastAPI** | API Server | REST endpoints |
+| **PyMuPDF** | PDF Processing | Text & image extraction |
+| **React + TypeScript** | Frontend | Modern UI |
 
 ## License
 

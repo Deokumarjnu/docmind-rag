@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, File, CheckCircle, XCircle, Loader2, FileText } from 'lucide-react'
+import { Upload, File, CheckCircle, XCircle, Loader2, FileText, Zap } from 'lucide-react'
 import UploadProgress from './UploadProgress'
 
 interface UploadState {
@@ -17,6 +17,7 @@ interface UploadState {
 
 export default function FileUpload() {
   const [uploads, setUploads] = useState<UploadState[]>([])
+  const [fastMode, setFastMode] = useState(true) // Default to fast mode for quicker uploads
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newUploads: UploadState[] = acceptedFiles.map(file => ({
@@ -43,7 +44,9 @@ export default function FileUpload() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch('/api/upload', {
+      // Use fast mode (no deep agents) for quicker processing
+      const url = fastMode ? '/api/upload?use_deep_agents=false' : '/api/upload'
+      const response = await fetch(url, {
         method: 'POST',
         body: formData,
       })
@@ -57,7 +60,7 @@ export default function FileUpload() {
       // Update with task ID and start polling
       setUploads(prev => prev.map(u =>
         u.file === file
-          ? { ...u, taskId: data.task_id, status: 'processing', progress: 10 }
+          ? { ...u, taskId: data.task_id, status: 'processing', progress: 5 }
           : u
       ))
 
@@ -82,31 +85,34 @@ export default function FileUpload() {
         setUploads(prev => prev.map(u => {
           if (u.file !== file) return u
 
-          if (data.status === 'completed') {
+          if (data.status === 'completed' || data.status === 'SUCCESS') {
             return {
               ...u,
               status: 'completed',
               progress: 100,
               result: data.result,
             }
-          } else if (data.status === 'failed') {
+          } else if (data.status === 'failed' || data.status === 'FAILURE') {
             return {
               ...u,
               status: 'failed',
               error: data.error || 'Processing failed',
             }
           } else {
+            // Use progress from backend, with minimum of current progress
+            const newProgress = Math.max(data.progress || 0, u.progress)
             return {
               ...u,
               status: 'processing',
-              progress: data.progress || u.progress,
+              progress: newProgress,
             }
           }
         }))
 
         // Continue polling if still processing
-        if (data.status === 'processing' || data.status === 'pending') {
-          setTimeout(poll, 2000)
+        if (data.status !== 'completed' && data.status !== 'failed' && 
+            data.status !== 'SUCCESS' && data.status !== 'FAILURE') {
+          setTimeout(poll, 1500)
         }
       } catch {
         // Retry on error
@@ -130,6 +136,27 @@ export default function FileUpload() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {/* Fast Mode Toggle */}
+      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${fastMode ? 'bg-amber-500/20' : 'bg-white/10'}`}>
+            <Zap className={`w-5 h-5 ${fastMode ? 'text-amber-400' : 'text-white/40'}`} />
+          </div>
+          <div>
+            <h4 className="font-medium">Fast Mode</h4>
+            <p className="text-xs text-white/50">
+              {fastMode ? 'Quick processing (~10s)' : 'Deep Agent processing (~60-120s)'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setFastMode(!fastMode)}
+          className={`relative w-12 h-6 rounded-full transition-colors ${fastMode ? 'bg-amber-500' : 'bg-white/20'}`}
+        >
+          <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${fastMode ? 'left-7' : 'left-1'}`} />
+        </button>
+      </div>
+
       {/* Dropzone */}
       <div
         {...getRootProps()}
@@ -221,33 +248,58 @@ export default function FileUpload() {
 
       {/* Info */}
       <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-        <h3 className="font-medium mb-4">Processing Features</h3>
-        <ul className="space-y-3 text-sm text-white/60">
-          <li className="flex items-start gap-3">
-            <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle className="w-3 h-3 text-emerald-400" />
-            </div>
-            <span>Deep Agent orchestration for intelligent content extraction</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle className="w-3 h-3 text-emerald-400" />
-            </div>
-            <span>Vision AI for charts, diagrams, and handwritten text</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle className="w-3 h-3 text-emerald-400" />
-            </div>
-            <span>Multi-page table merging and structure preservation</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle className="w-3 h-3 text-emerald-400" />
-            </div>
-            <span>Code-aware chunking with AST parsing</span>
-          </li>
-        </ul>
+        <h3 className="font-medium mb-4">
+          {fastMode ? 'Fast Mode Features' : 'Deep Agent Features'}
+        </h3>
+        {fastMode ? (
+          <ul className="space-y-3 text-sm text-white/60">
+            <li className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Zap className="w-3 h-3 text-amber-400" />
+              </div>
+              <span>Quick parallel page processing (~10 seconds)</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Zap className="w-3 h-3 text-amber-400" />
+              </div>
+              <span>Automatic page type detection (text, table, image)</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Zap className="w-3 h-3 text-amber-400" />
+              </div>
+              <span>Content-aware chunking for better retrieval</span>
+            </li>
+          </ul>
+        ) : (
+          <ul className="space-y-3 text-sm text-white/60">
+            <li className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-3 h-3 text-emerald-400" />
+              </div>
+              <span>Deep Agent orchestration for intelligent content extraction</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-3 h-3 text-emerald-400" />
+              </div>
+              <span>Vision AI for charts, diagrams, and handwritten text</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-3 h-3 text-emerald-400" />
+              </div>
+              <span>Multi-page table merging and structure preservation</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-3 h-3 text-emerald-400" />
+              </div>
+              <span>Code-aware chunking with AST parsing</span>
+            </li>
+          </ul>
+        )}
       </div>
     </div>
   )

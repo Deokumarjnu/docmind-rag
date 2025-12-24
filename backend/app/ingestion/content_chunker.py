@@ -27,13 +27,15 @@ TEXT_SPLITTER_NORMAL = RecursiveCharacterTextSplitter(
     length_function=len,
 )
 
+# OCR/Scanned text: smaller chunks to isolate errors
 TEXT_SPLITTER_SMALL = RecursiveCharacterTextSplitter(
-    chunk_size=400,
-    chunk_overlap=50,
+    chunk_size=500,
+    chunk_overlap=75,
     separators=["\n\n", "\n", ". ", " ", ""],
     length_function=len,
 )
 
+# Code: larger chunks to keep functions/classes together
 TEXT_SPLITTER_CODE = RecursiveCharacterTextSplitter(
     chunk_size=1500,
     chunk_overlap=200,
@@ -53,13 +55,23 @@ def chunk_document(doc: Document) -> list[Document]:
         List of chunked documents
     """
     content_type = doc.metadata.get("content_type", "text")
+    extraction_method = doc.metadata.get("extraction_method", "")
     
     # Route to appropriate chunker
     if content_type == PageType.TABLE.value or content_type == "table":
         return chunk_table(doc)
     elif content_type == PageType.CODE.value or content_type == "code":
         return chunk_code(doc)
+    elif content_type == PageType.CHART.value or content_type == "chart":
+        # Keep chart/figure descriptions intact for better retrieval
+        return chunk_visual_content(doc)
+    elif content_type in ["diagram", "flowchart", "graph"]:
+        # Keep visual descriptions intact
+        return chunk_visual_content(doc)
     elif content_type == PageType.IMAGE.value or content_type == "image":
+        # If extracted with vision LLM, keep intact; otherwise use OCR chunking
+        if extraction_method == "vision_llm":
+            return chunk_visual_content(doc)
         return chunk_ocr_text(doc)
     elif content_type == PageType.HANDWRITING.value or content_type == "handwriting":
         return chunk_ocr_text(doc)
@@ -75,6 +87,51 @@ def chunk_table(doc: Document) -> list[Document]:
     """
     # Tables should not be split
     doc.metadata["chunk_method"] = "table_intact"
+    return [doc]
+
+
+def chunk_visual_content(doc: Document) -> list[Document]:
+    """
+    Keep visual content descriptions intact without splitting.
+    
+    Charts, diagrams, figures, and their descriptions should be kept together
+    for accurate retrieval. Splitting them loses the context of what the
+    visual element represents.
+    """
+    doc.metadata["chunk_method"] = "visual_intact"
+    
+    # If the content is very long (>2500 chars), we may need to split
+    # but preserve the figure reference in each chunk
+    if len(doc.page_content) > 2500:
+        # Extract figure reference if present
+        import re
+        figure_ref = ""
+        fig_match = re.search(r'(?:Figure|Fig\.?|Chart|Diagram)\s*\d+[-.]?\d*[:\s]*[^\n]*', 
+                              doc.page_content, re.IGNORECASE)
+        if fig_match:
+            figure_ref = fig_match.group(0).strip()
+        
+        # Use larger chunk size for visual content to preserve context
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1500,
+            chunk_overlap=250,
+            separators=["\n\n", "\n", ". ", " "],
+        )
+        
+        chunks = splitter.split_documents([doc])
+        
+        # Add figure reference to each chunk for better retrieval
+        for i, chunk in enumerate(chunks):
+            if figure_ref and figure_ref not in chunk.page_content:
+                chunk.page_content = f"[{figure_ref}]\n{chunk.page_content}"
+            chunk.metadata["chunk_method"] = "visual_split"
+            chunk.metadata["chunk_index"] = i
+            chunk.metadata["total_chunks"] = len(chunks)
+            if figure_ref:
+                chunk.metadata["figure_reference"] = figure_ref
+        
+        return chunks
+    
     return [doc]
 
 

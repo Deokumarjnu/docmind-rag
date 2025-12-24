@@ -7,8 +7,13 @@ with progress tracking and error handling.
 import logging
 import os
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Optional
+
+# Suppress matplotlib font warnings (common on macOS)
+warnings.filterwarnings("ignore", message=".*font.*", category=UserWarning)
+logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 
 from celery import shared_task, current_task
 
@@ -123,35 +128,66 @@ def process_document_simple_task(
     Uses parallel processor directly without agent coordination.
     """
     from app.ingestion.parallel_processor import process_pdf_parallel
+    from app.vectorstore.store import get_vector_store
     
     logger.info(f"Starting simple processing: {document_id}")
     
     try:
         def update_progress(current: int, total: int):
+            # Page processing is 0-50% of total progress
+            percent = int((current / total) * 50)
             self.update_state(
                 state='PROGRESS',
                 meta={
                     'current': current,
                     'total': total,
-                    'percent': int((current / total) * 100),
+                    'percent': percent,
                     'status': f'Processing page {current} of {total}',
                 }
             )
         
-        # Process
+        # Process pages (0-50%)
         chunks = process_pdf_parallel(pdf_path, on_progress=update_progress)
         
         # Add source
         for chunk in chunks:
             chunk.metadata["source"] = document_id
         
-        # Store
-        add_documents_sync(chunks)
+        # Store with progress updates (50-100%)
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'percent': 55,
+                'status': f'Embedding {len(chunks)} chunks...',
+            }
+        )
+        
+        # Get vector store and add in batches with progress
+        vector_store = get_vector_store()
+        batch_size = 50
+        total_chunks = len(chunks)
+        
+        for i in range(0, total_chunks, batch_size):
+            batch = chunks[i:i + batch_size]
+            vector_store.add_documents(batch)
+            
+            # Update progress (50-100%)
+            batch_progress = min(i + batch_size, total_chunks)
+            percent = 50 + int((batch_progress / total_chunks) * 50)
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'percent': percent,
+                    'status': f'Stored {batch_progress}/{total_chunks} chunks',
+                }
+            )
+        
+        logger.info(f"Added {total_chunks} documents to vector store")
         
         return {
             'status': 'completed',
             'document_id': document_id,
-            'total_chunks': len(chunks),
+            'total_chunks': total_chunks,
         }
         
     except Exception as e:

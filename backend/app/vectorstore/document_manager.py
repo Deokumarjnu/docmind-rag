@@ -58,13 +58,13 @@ class DocumentManager:
         # Count before deletion
         count_before = self._count_by_source(document_id)
         
-        # Delete by source filter
+        # Delete by source filter (metadata.source for LangChain's nested structure)
         self.client.delete(
             collection_name=self.collection_name,
             points_selector=Filter(
                 must=[
                     FieldCondition(
-                        key="source",
+                        key="metadata.source",
                         match=MatchValue(value=document_id)
                     )
                 ]
@@ -149,17 +149,17 @@ class DocumentManager:
         deleted = 0
         
         for page_num in page_numbers:
-            # Delete chunks for this page
+            # Delete chunks for this page (using nested metadata keys)
             self.client.delete(
                 collection_name=self.collection_name,
                 points_selector=Filter(
                     must=[
                         FieldCondition(
-                            key="source",
+                            key="metadata.source",
                             match=MatchValue(value=document_id)
                         ),
                         FieldCondition(
-                            key="page",
+                            key="metadata.page",
                             match=MatchValue(value=page_num)
                         )
                     ]
@@ -177,44 +177,74 @@ class DocumentManager:
         Returns:
             List of document info dictionaries
         """
+        # Check if collection exists first
+        try:
+            collections = self.client.get_collections().collections
+            collection_names = [c.name for c in collections]
+            if self.collection_name not in collection_names:
+                logger.info(f"Collection {self.collection_name} does not exist yet")
+                return []
+        except Exception as e:
+            logger.warning(f"Failed to check collections: {e}")
+            return []
+        
         # Scroll through all points to get unique sources
         sources = {}
         offset = None
         
-        while True:
-            results, offset = self.client.scroll(
-                collection_name=self.collection_name,
-                limit=1000,
-                offset=offset,
-                with_payload=["source", "page", "content_type"],
-            )
-            
-            for point in results:
-                source = point.payload.get("source", "unknown")
-                page = point.payload.get("page", 0)
-                content_type = point.payload.get("content_type", "text")
+        try:
+            while True:
+                results, offset = self.client.scroll(
+                    collection_name=self.collection_name,
+                    limit=1000,
+                    offset=offset,
+                    with_payload=True,  # Get full payload to access nested metadata
+                )
                 
-                if source not in sources:
-                    sources[source] = {
-                        "document_id": source,
-                        "chunk_count": 0,
-                        "pages": set(),
-                        "content_types": set(),
-                    }
+                for point in results:
+                    payload = point.payload or {}
+                    # LangChain stores metadata in a nested 'metadata' field
+                    metadata = payload.get("metadata", payload)
+                    
+                    source = metadata.get("source", "unknown")
+                    page = metadata.get("page", 0)
+                    content_type = metadata.get("content_type", "text")
+                    
+                    if source not in sources:
+                        sources[source] = {
+                            "document_id": source,
+                            "chunk_count": 0,
+                            "pages": set(),
+                            "content_types": set(),
+                        }
+                    
+                    sources[source]["chunk_count"] += 1
+                    if page is not None:
+                        sources[source]["pages"].add(page)
+                    sources[source]["content_types"].add(content_type)
                 
-                sources[source]["chunk_count"] += 1
-                sources[source]["pages"].add(page)
-                sources[source]["content_types"].add(content_type)
-            
-            if offset is None:
-                break
+                if offset is None:
+                    break
+        except Exception as e:
+            logger.error(f"Failed to scroll collection: {e}")
+            return []
         
         # Format results
         documents = []
         for source, info in sources.items():
+            # Extract filename from source (usually uuid_filename.pdf format)
+            filename = source
+            if "_" in source:
+                # Remove UUID prefix if present (format: uuid_filename.pdf)
+                parts = source.split("_", 1)
+                if len(parts) > 1:
+                    filename = parts[1]
+            elif "/" in source:
+                filename = source.split("/")[-1]
+            
             documents.append({
                 "document_id": source,
-                "filename": source.split("/")[-1] if "/" in source else source,
+                "filename": filename,
                 "total_chunks": info["chunk_count"],
                 "pages": len(info["pages"]),
                 "content_types": list(info["content_types"]),
@@ -238,12 +268,12 @@ class DocumentManager:
             scroll_filter=Filter(
                 must=[
                     FieldCondition(
-                        key="source",
+                        key="metadata.source",
                         match=MatchValue(value=document_id)
                     )
                 ]
             ),
-            with_payload=["source", "page", "content_type", "chunk_index"],
+            with_payload=True,
         )
         
         if not results:
@@ -253,12 +283,26 @@ class DocumentManager:
         content_types = set()
         
         for point in results:
-            pages.add(point.payload.get("page", 0))
-            content_types.add(point.payload.get("content_type", "text"))
+            payload = point.payload or {}
+            metadata = payload.get("metadata", payload)
+            page = metadata.get("page", 0)
+            content_type = metadata.get("content_type", "text")
+            if page is not None:
+                pages.add(page)
+            content_types.add(content_type)
+        
+        # Extract filename
+        filename = document_id
+        if "_" in document_id:
+            parts = document_id.split("_", 1)
+            if len(parts) > 1:
+                filename = parts[1]
+        elif "/" in document_id:
+            filename = document_id.split("/")[-1]
         
         return {
             "document_id": document_id,
-            "filename": document_id.split("/")[-1] if "/" in document_id else document_id,
+            "filename": filename,
             "total_chunks": len(results),
             "pages": sorted(list(pages)),
             "content_types": list(content_types),
@@ -267,22 +311,31 @@ class DocumentManager:
     def _count_by_source(self, source: str) -> int:
         """Count chunks for a source document."""
         try:
-            results, _ = self.client.scroll(
-                collection_name=self.collection_name,
-                limit=1,
-                scroll_filter=Filter(
-                    must=[
-                        FieldCondition(
-                            key="source",
-                            match=MatchValue(value=source)
-                        )
-                    ]
-                ),
-                with_payload=False,
-            )
+            # Count all matching documents
+            count = 0
+            offset = None
             
-            # This is approximate - full count requires aggregation
-            return len(results)
+            while True:
+                results, offset = self.client.scroll(
+                    collection_name=self.collection_name,
+                    limit=1000,
+                    offset=offset,
+                    scroll_filter=Filter(
+                        must=[
+                            FieldCondition(
+                                key="metadata.source",
+                                match=MatchValue(value=source)
+                            )
+                        ]
+                    ),
+                    with_payload=False,
+                )
+                count += len(results)
+                
+                if offset is None:
+                    break
+            
+            return count
         except Exception:
             return 0
 
@@ -311,7 +364,7 @@ class DocumentManager:
             filter=Filter(
                 must=[
                     FieldCondition(
-                        key="content_type",
+                        key="metadata.content_type",
                         match=MatchValue(value=content_type)
                     )
                 ]

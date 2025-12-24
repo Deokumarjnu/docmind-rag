@@ -49,7 +49,7 @@ class TextSpecialist:
             model_name: LLM model name to use
         """
         self.model = ChatOpenAI(
-            model=model_name or "gpt-4o-mini",  # Faster for text processing
+            model=model_name or settings.fast_llm_model,  # Faster for text processing
             temperature=0,
             api_key=settings.openai_api_key,
         )

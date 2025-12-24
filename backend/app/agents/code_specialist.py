@@ -50,7 +50,7 @@ class CodeSpecialist:
             model_name: LLM model name to use
         """
         self.model = ChatOpenAI(
-            model=model_name or "gpt-4o-mini",  # Faster for code parsing
+            model=model_name or settings.fast_llm_model,  # Faster for code parsing
             temperature=0,
             api_key=settings.openai_api_key,
         )

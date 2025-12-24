@@ -55,11 +55,18 @@ async def query_documents(request: QueryRequest):
         sources = []
         if request.include_sources:
             for src in result.get("sources", []):
+                # Handle None or invalid content_type
+                ct_value = src.get("content_type") or "text"
+                try:
+                    content_type = ContentType(ct_value)
+                except ValueError:
+                    content_type = ContentType.OTHER
+                
                 sources.append(SourceDocument(
                     content=src.get("content", ""),
                     page=src.get("page", 0),
                     source=src.get("source", "unknown"),
-                    content_type=ContentType(src.get("content_type", "text")),
+                    content_type=content_type,
                     relevance_score=src.get("relevance_score", 0.0),
                     metadata=src,
                 ))
@@ -96,11 +103,18 @@ async def query_documents_simple(request: QueryRequest):
         sources = []
         if request.include_sources:
             for src in result.get("sources", []):
+                # Handle None or invalid content_type
+                ct_value = src.get("content_type") or "text"
+                try:
+                    content_type = ContentType(ct_value)
+                except ValueError:
+                    content_type = ContentType.OTHER
+                
                 sources.append(SourceDocument(
                     content=src.get("content", ""),
                     page=src.get("page", 0),
                     source=src.get("source", "unknown"),
-                    content_type=ContentType(src.get("content_type", "text")),
+                    content_type=content_type,
                     relevance_score=src.get("relevance_score", 0.0),
                     metadata=src,
                 ))
@@ -194,9 +208,14 @@ async def list_documents():
         
         doc_infos = []
         for doc in documents:
-            content_types = [
-                ContentType(ct) for ct in doc.get("content_types", ["text"])
-            ]
+            # Handle content types - map unknown types to appropriate enum values
+            content_types = []
+            for ct in doc.get("content_types", ["text"]):
+                try:
+                    content_types.append(ContentType(ct))
+                except ValueError:
+                    # Map unknown content types to closest match
+                    content_types.append(ContentType.OTHER)
             doc_infos.append(DocumentInfo(
                 document_id=doc["document_id"],
                 filename=doc["filename"],

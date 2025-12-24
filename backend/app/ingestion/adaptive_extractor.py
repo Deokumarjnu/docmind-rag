@@ -11,6 +11,7 @@ from typing import Optional
 from langchain_core.documents import Document
 
 from app.ingestion.page_classifier import PageType, classify_page, get_extraction_strategy
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +25,14 @@ class AdaptiveExtractor:
     - Unstructured with elements mode for tables
     - Unstructured with OCR for image/scanned pages
     - Unstructured auto for mixed content
+    - Vision LLM for charts, diagrams, and images
     """
 
     def __init__(self):
         """Initialize the adaptive extractor."""
         self._pymupdf_available = self._check_pymupdf()
         self._unstructured_available = self._check_unstructured()
+        self._vision_page_count = 0  # Track vision API usage
 
     def _check_pymupdf(self) -> bool:
         """Check if PyMuPDF is available."""
@@ -109,7 +112,7 @@ class AdaptiveExtractor:
         elif strategy == "unstructured_auto":
             return self._extract_with_unstructured_auto(pdf_path, page_num, page_type)
         elif strategy == "vision_llm":
-            # Use vision LLM for handwriting extraction
+            # Use vision LLM for charts, images, diagrams, and handwriting
             return self._extract_with_vision_llm(page, pdf_path, page_type)
         else:
             logger.warning(f"Unknown strategy {strategy}, falling back to pymupdf")
@@ -266,19 +269,59 @@ class AdaptiveExtractor:
         page_type: PageType,
     ) -> list[Document]:
         """
-        Extract with vision LLM for handwriting or low-quality OCR pages.
+        Extract with vision LLM for charts, images, diagrams, and handwriting.
+        
+        Uses GPT-5.2 vision to describe visual content for better retrieval.
+        Includes cost control: limits vision API calls per document.
         """
+        page_num = page.metadata.get("page", 0)
+        
+        # Check if vision is enabled and within limits
+        if not settings.use_vision_for_images:
+            logger.debug(f"Vision disabled, using OCR for page {page_num}")
+            return self._extract_with_ocr(pdf_path, page_num, page_type)
+        
+        if self._vision_page_count >= settings.max_vision_pages:
+            logger.warning(
+                f"Vision limit reached ({settings.max_vision_pages} pages). "
+                f"Using OCR for page {page_num}. Increase MAX_VISION_PAGES if needed."
+            )
+            return self._extract_with_ocr(pdf_path, page_num, page_type)
+        
         try:
+            from app.ingestion.vision_processor import process_visual_page
+            
+            # Use vision processor for charts, images, and diagrams
+            if page_type in [PageType.CHART, PageType.IMAGE]:
+                self._vision_page_count += 1
+                
+                result = process_visual_page(
+                    pdf_path,
+                    page_num,
+                    page.metadata,
+                )
+                
+                # Also preserve the original text content alongside the visual description
+                original_text = page.page_content.strip()
+                if original_text and len(original_text) > 50:
+                    # Combine visual description with original text for better retrieval
+                    result.page_content = f"{result.page_content}\n\n[Original page text]\n{original_text}"
+                
+                return [result]
+            
+            # For handwriting, use the handwriting extractor
             from app.ingestion.handwriting_extractor import extract_page_with_handwriting_support
             
+            self._vision_page_count += 1
             result = extract_page_with_handwriting_support(page, pdf_path)
             result.metadata["extraction_method"] = "vision_llm"
             result.metadata["content_type"] = page_type.value
             return [result]
             
         except Exception as e:
-            logger.error(f"Vision LLM extraction failed: {e}")
-            return self._extract_with_pymupdf(page, page_type)
+            logger.error(f"Vision LLM extraction failed for page {page_num}: {e}")
+            # Fall back to OCR or PyMuPDF
+            return self._extract_with_ocr(pdf_path, page_num, page_type)
 
     def _fallback_extraction(
         self,

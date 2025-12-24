@@ -1,7 +1,8 @@
 """Vision model integration for charts, graphs, and diagrams.
 
-This module uses GPT-4o or similar vision models to generate
+This module uses GPT-5.2 vision model to generate
 text descriptions of visual content for better retrieval.
+GPT-5.2 offers improved CharXiv reasoning (93.9% vs 75.7% on GPT-4o).
 """
 
 import base64
@@ -128,45 +129,84 @@ def describe_visual_element(
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
     
     prompts = {
-        "chart": """Describe this chart in detail. Include:
-- Chart type (bar, pie, line, etc.)
-- Axes labels and units
-- Data trends and patterns
-- Key values and data points
-- Any conclusions that can be drawn""",
+        "chart": """Extract and describe ALL content from this document page. Include:
+
+1. FIGURE/CHART IDENTIFICATION:
+   - Figure number and title (e.g., "Figure 1-1: AI Progress Timeline")
+   - Chart type (bar, pie, line, timeline, etc.)
+
+2. VISUAL CONTENT DESCRIPTION:
+   - All labels, axes, and legends
+   - All data points, values, and categories shown
+   - Timeline periods or date ranges if present
+   - Any visual progression or flow
+
+3. KEY INFORMATION:
+   - Main message or conclusion the figure conveys
+   - All text visible in the figure
+   - Relationships between elements
+
+4. SURROUNDING TEXT:
+   - Any captions or descriptions near the figure
+   - Section headers visible on the page
+
+Be thorough - this description will be used for search and retrieval.""",
         
-        "graph": """Describe this graph in detail. Include:
-- What is being measured
-- Relationships shown between variables
-- Scale and units
-- Key data points and trends
-- Notable patterns or anomalies""",
+        "graph": """Extract and describe ALL content from this graph. Include:
+
+1. IDENTIFICATION: Graph title, figure number, and any labels
+2. AXES: What is measured on each axis, units, and scale
+3. DATA: All data points, trends, and patterns visible
+4. RELATIONSHIPS: What the graph shows about relationships between variables
+5. KEY INSIGHTS: Main conclusions that can be drawn
+6. ALL TEXT: Every piece of text visible in and around the graph
+
+Be thorough - this description will be used for search and retrieval.""",
         
-        "diagram": """Describe this diagram in detail. Include:
-- What the diagram represents
-- Main components and elements
-- Relationships between components
-- Flow or process if applicable
-- Key information conveyed""",
+        "diagram": """Extract and describe ALL content from this diagram. Include:
+
+1. IDENTIFICATION: Diagram title, figure number
+2. COMPONENTS: All elements, boxes, shapes, and their labels
+3. RELATIONSHIPS: How components connect or relate to each other
+4. FLOW: Any sequence, progression, or timeline shown
+5. CATEGORIES: Any groupings or classifications shown
+6. ALL TEXT: Every piece of text visible in the diagram
+7. KEY MESSAGE: What the diagram is trying to communicate
+
+Be thorough - this description will be used for search and retrieval.""",
         
-        "flowchart": """Describe this flowchart step by step. Include:
-- Starting point
-- Each step or decision point
-- Branches and conditions
-- End points or outcomes
-- Overall process flow""",
+        "flowchart": """Extract and describe this flowchart step by step. Include:
+
+1. TITLE: Flowchart name and figure number
+2. START: Starting point(s)
+3. STEPS: Each step in order with exact text
+4. DECISIONS: All decision points and their conditions
+5. BRANCHES: Different paths and outcomes
+6. END: Final outcomes or endpoints
+7. OVERALL PROCESS: Summary of what the flowchart represents
+
+Be thorough - this description will be used for search and retrieval.""",
         
-        "table": """Describe this table in detail. Include:
-- Column headers
-- Key data rows
-- Notable values
-- Summary of what the table shows""",
+        "table": """Extract ALL data from this table. Include:
+
+1. TABLE IDENTIFICATION: Table number, title, caption
+2. HEADERS: All column and row headers exactly as shown
+3. DATA: All cell values, preserving the structure
+4. TOTALS: Any summary rows or calculations
+5. NOTES: Any footnotes or annotations
+6. CONTEXT: What the table represents
+
+Format the data clearly so it can be searched and retrieved.""",
         
         "photo": """Describe this image in detail. Include:
-- Main subjects
-- Context and setting
-- Notable elements
-- Relevant text visible""",
+
+1. MAIN SUBJECT: What the image shows
+2. TEXT: Any visible text, labels, or captions
+3. CONTEXT: Setting, background, and relevant details
+4. FIGURES: If this is a figure from a document, include figure number
+5. RELEVANCE: What information this image conveys
+
+Be thorough - this description will be used for search and retrieval.""",
     }
     
     prompt = prompts.get(element_type, prompts["chart"])

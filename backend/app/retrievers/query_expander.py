@@ -40,7 +40,7 @@ class QueryExpander:
             acronym_dict: Dictionary of acronyms to expand
         """
         self.model = ChatOpenAI(
-            model=model_name or "gpt-4o-mini",
+            model=model_name or settings.fast_llm_model,
             temperature=0.3,
             api_key=settings.openai_api_key,
         )
@@ -79,6 +79,8 @@ Guidelines:
 - Expand abbreviations and acronyms
 - Make implicit concepts explicit
 - Use synonyms that might appear in documents
+- If the query asks for a summary, overview, or explanation, consider that documents may contain figures, diagrams, charts, or timelines that summarize the topic
+- Add relevant keywords like "figure", "diagram", "timeline" if the query is about progress, evolution, or history
 - Keep the rewritten query concise (1-2 sentences)
 - Preserve the original intent
 
@@ -181,7 +183,7 @@ class HypotheticalDocumentEmbedder:
             model_name: LLM model to use
         """
         self.model = ChatOpenAI(
-            model=model_name or "gpt-4o-mini",
+            model=model_name or settings.fast_llm_model,
             temperature=0.7,
             api_key=settings.openai_api_key,
         )

@@ -136,8 +136,35 @@ Answer:"""),
     
     def invoke_with_sources(query: str) -> dict:
         """Invoke chain and return answer with sources."""
-        # Retrieve documents
-        docs_with_scores = vector_store.similarity_search_with_score(query, k=k)
+        from app.retrievers.query_expander import QueryExpander
+        
+        # Expand/rewrite query for better retrieval
+        expander = QueryExpander()
+        enhanced = expander.enhance_query(query, expand_acronyms=True, rewrite=True)
+        search_query = enhanced.get("rewritten", query)
+        
+        logger.debug(f"Original query: {query}")
+        logger.debug(f"Enhanced query: {search_query}")
+        
+        # Retrieve with enhanced query - get more results initially
+        docs_with_scores = vector_store.similarity_search_with_score(search_query, k=k * 2)
+        
+        # Also search with original query and combine results
+        original_docs = vector_store.similarity_search_with_score(query, k=k)
+        
+        # Merge and deduplicate results
+        seen_pages = set()
+        merged_results = []
+        
+        for doc, score in docs_with_scores + original_docs:
+            page_key = (doc.metadata.get("source"), doc.metadata.get("page"), doc.metadata.get("chunk_index", 0))
+            if page_key not in seen_pages:
+                seen_pages.add(page_key)
+                merged_results.append((doc, score))
+        
+        # Sort by score and take top k
+        merged_results.sort(key=lambda x: x[1], reverse=True)
+        docs_with_scores = merged_results[:k]
         docs = [doc for doc, score in docs_with_scores]
         
         # Format for prompt
@@ -165,6 +192,7 @@ Answer:"""),
             "answer": answer,
             "sources": sources,
             "query": query,
+            "enhanced_query": search_query,
         }
     
     return invoke_with_sources
