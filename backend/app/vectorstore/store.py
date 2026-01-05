@@ -25,7 +25,20 @@ def get_embedding_model() -> Embeddings:
 
 
 def get_qdrant_client() -> QdrantClient:
-    """Get a Qdrant client instance."""
+    """Get a Qdrant client instance.
+    
+    Supports both local Qdrant and Qdrant Cloud.
+    - Local: Uses qdrant_host + qdrant_port
+    - Cloud: Uses qdrant_url + qdrant_api_key
+    """
+    # Use Qdrant Cloud if URL is provided
+    if settings.qdrant_url:
+        return QdrantClient(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+        )
+    
+    # Otherwise use local Qdrant
     return QdrantClient(
         host=settings.qdrant_host,
         port=settings.qdrant_port,

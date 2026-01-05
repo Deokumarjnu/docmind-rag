@@ -25,6 +25,57 @@ from app.ingestion.content_chunker import chunk_documents
 logger = logging.getLogger(__name__)
 
 
+def extract_knowledge_graph_sync(chunks, document_id: str) -> dict:
+    """
+    Extract knowledge graph from document chunks synchronously.
+    
+    Args:
+        chunks: Document chunks to process
+        document_id: Document identifier
+        
+    Returns:
+        Dictionary with extraction statistics
+    """
+    import asyncio
+    
+    async def _extract():
+        from app.graph import KnowledgeGraphExtractor, KnowledgeGraphStore
+        
+        extractor = KnowledgeGraphExtractor()
+        store = KnowledgeGraphStore()
+        await store.initialize()
+        
+        total_entities = 0
+        total_relations = 0
+        
+        # Process a sample of chunks to avoid API overload
+        sample_chunks = chunks[:20] if len(chunks) > 20 else chunks
+        
+        for chunk in sample_chunks:
+            try:
+                result = extractor.extract_from_document(chunk)
+                stats = await store.add_extraction_results(result, document_id)
+                total_entities += stats.get("entities_added", 0)
+                total_relations += stats.get("relationships_added", 0)
+            except Exception as e:
+                logger.debug(f"Chunk extraction failed: {e}")
+                continue
+        
+        return {
+            "total_entities": total_entities,
+            "total_relations": total_relations,
+        }
+    
+    # Run async function in sync context
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    return loop.run_until_complete(_extract())
+
+
 @celery_app.task(bind=True, name="process_document")
 def process_document_task(
     self,
@@ -88,16 +139,36 @@ def process_document_task(
             state='PROGRESS',
             meta={
                 'status': 'Storing in vector database...',
-                'percent': 95,
+                'percent': 90,
             }
         )
         add_documents_sync(chunks)
+        
+        # Extract knowledge graph (async in background)
+        kg_entities = 0
+        kg_relations = 0
+        try:
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'status': 'Extracting knowledge graph...',
+                    'percent': 95,
+                }
+            )
+            kg_result = extract_knowledge_graph_sync(chunks[:50], document_id)
+            kg_entities = kg_result.get("total_entities", 0)
+            kg_relations = kg_result.get("total_relations", 0)
+            logger.info(f"KG extracted: {kg_entities} entities, {kg_relations} relations")
+        except Exception as e:
+            logger.warning(f"KG extraction failed (non-critical): {e}")
         
         result = {
             'status': 'completed',
             'document_id': document_id,
             'total_pages': len(documents),
             'total_chunks': len(chunks),
+            'kg_entities': kg_entities,
+            'kg_relations': kg_relations,
             'errors': [],
         }
         

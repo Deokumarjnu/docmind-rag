@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { API_ENDPOINTS } from '../config'
 
 interface UploadProgressProps {
   taskId: string
@@ -34,7 +35,7 @@ export default function UploadProgress({
 
     const pollStatus = async () => {
       try {
-        const response = await fetch(`/api/upload/status/${taskId}`)
+        const response = await fetch(API_ENDPOINTS.uploadStatus(taskId))
         const data: ProgressStatus = await response.json()
         setStatus(data)
 

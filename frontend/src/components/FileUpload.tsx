@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, File, CheckCircle, XCircle, Loader2, FileText, Zap } from 'lucide-react'
 import UploadProgress from './UploadProgress'
+import { API_ENDPOINTS } from '../config'
 
 interface UploadState {
   file: File
@@ -45,7 +46,7 @@ export default function FileUpload() {
       formData.append('file', file)
 
       // Use fast mode (no deep agents) for quicker processing
-      const url = fastMode ? '/api/upload?use_deep_agents=false' : '/api/upload'
+      const url = fastMode ? `${API_ENDPOINTS.upload}?use_deep_agents=false` : API_ENDPOINTS.upload
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
@@ -79,7 +80,7 @@ export default function FileUpload() {
   const pollProgress = async (file: File, taskId: string) => {
     const poll = async () => {
       try {
-        const response = await fetch(`/api/upload/status/${taskId}`)
+        const response = await fetch(API_ENDPOINTS.uploadStatus(taskId))
         const data = await response.json()
 
         setUploads(prev => prev.map(u => {

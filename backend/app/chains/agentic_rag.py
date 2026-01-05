@@ -35,6 +35,10 @@ class RAGState(TypedDict):
     is_valid: bool
     retry_count: int
     max_retries: int
+    # Multi-turn context
+    conversation_context: list[tuple[str, str]]
+    # Knowledge graph context
+    graph_context: list[dict]
 
 
 def create_enhance_query_node():
@@ -142,7 +146,7 @@ Are these documents relevant to answer the query?"""),
 
 
 def create_generate_answer_node():
-    """Create the answer generation node."""
+    """Create the answer generation node with conversation and graph context."""
     
     model = ChatOpenAI(
         model=settings.llm_model,
@@ -150,28 +154,11 @@ def create_generate_answer_node():
         api_key=settings.openai_api_key,
     )
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a helpful assistant that answers questions based on provided documents.
-
-Guidelines:
-- Answer based ONLY on the provided documents
-- If the documents don't contain enough information, say so
-- Cite sources using [Source: page X] notation
-- Be concise but complete
-- If there are multiple perspectives, present them"""),
-        ("user", """Question: {query}
-
-Documents:
-{documents}
-
-Answer the question based on the documents above."""),
-    ])
-    
-    chain = prompt | model | StrOutputParser()
-    
     def generate_answer(state: RAGState) -> RAGState:
-        """Generate answer from retrieved documents."""
+        """Generate answer from retrieved documents with full context."""
         documents = state.get("documents", [])
+        conversation_context = state.get("conversation_context", [])
+        graph_context = state.get("graph_context", [])
         
         if not documents:
             state["answer"] = "I couldn't find any relevant information to answer your question."
@@ -185,11 +172,51 @@ Answer the question based on the documents above."""),
             for doc in documents
         ])
         
+        # Format graph context if available
+        graph_text = ""
+        if graph_context:
+            entities_info = "\n".join([
+                f"- {e.get('name')} ({e.get('type')}): {e.get('description', '')}"
+                for e in graph_context[:5]
+            ])
+            graph_text = f"\n\nRelated Knowledge Graph Entities:\n{entities_info}"
+        
+        # Build messages with conversation history
+        messages = [
+            ("system", """You are a helpful assistant that answers questions based on provided documents.
+
+Guidelines:
+- Answer based ONLY on the provided documents
+- If the documents don't contain enough information, say so
+- Cite sources using [Source: page X] notation
+- Be concise but complete
+- If there are multiple perspectives, present them
+- Use the conversation history to understand context from previous questions
+- Use the knowledge graph entities to provide more comprehensive answers"""),
+        ]
+        
+        # Add conversation history
+        for role, content in conversation_context[-6:]:  # Last 3 turns
+            if role == "user":
+                messages.append(("user", content))
+            else:
+                messages.append(("assistant", content))
+        
+        # Add current query with context
+        current_prompt = f"""Documents:
+{docs_text}{graph_text}
+
+Question: {state["query"]}
+
+Answer the question based on the documents above."""
+        
+        messages.append(("user", current_prompt))
+        
+        prompt = ChatPromptTemplate.from_messages(messages)
+        chain = prompt | model | StrOutputParser()
+        
         try:
-            answer = chain.invoke({
-                "query": state["query"],
-                "documents": docs_text,
-            })
+            answer = chain.invoke({})
             
             state["answer"] = answer
             
@@ -359,7 +386,7 @@ def create_rag_agent(
 
 class AgenticRAG:
     """
-    Wrapper class for the agentic RAG system.
+    Wrapper class for the agentic RAG system with multi-turn and graph support.
     """
 
     def __init__(
@@ -368,6 +395,8 @@ class AgenticRAG:
         k: int = 5,
         max_retries: int = 2,
         use_reranker: bool = True,
+        conversation_context: Optional[list[tuple[str, str]]] = None,
+        graph_context: Optional[list[dict]] = None,
     ):
         """
         Initialize agentic RAG.
@@ -377,10 +406,14 @@ class AgenticRAG:
             k: Number of documents to retrieve
             max_retries: Maximum retry attempts
             use_reranker: Whether to use cross-encoder reranking
+            conversation_context: Previous conversation turns for multi-turn
+            graph_context: Knowledge graph entities for enhanced reasoning
         """
         self.retriever = retriever
         self.k = k
         self.max_retries = max_retries
+        self.conversation_context = conversation_context or []
+        self.graph_context = graph_context or []
         
         self.reranker = None
         if use_reranker:
@@ -411,6 +444,8 @@ class AgenticRAG:
             "is_valid": False,
             "retry_count": 0,
             "max_retries": self.max_retries,
+            "conversation_context": self.conversation_context,
+            "graph_context": self.graph_context,
         }
         
         # Run the agent
@@ -447,6 +482,8 @@ class AgenticRAG:
             "is_valid": False,
             "retry_count": 0,
             "max_retries": self.max_retries,
+            "conversation_context": self.conversation_context,
+            "graph_context": self.graph_context,
         }
         
         result = await self.agent.ainvoke(initial_state)
@@ -466,15 +503,19 @@ def create_agentic_rag(
     k: int = 5,
     max_retries: int = 2,
     use_reranker: bool = True,
+    conversation_context: Optional[list[tuple[str, str]]] = None,
+    graph_context: Optional[list[dict]] = None,
 ) -> AgenticRAG:
     """
-    Create an agentic RAG instance.
+    Create an agentic RAG instance with multi-turn and graph support.
     
     Args:
         retriever: Custom retriever
         k: Number of documents
         max_retries: Maximum retries
         use_reranker: Whether to use reranking
+        conversation_context: Previous conversation for multi-turn
+        graph_context: Knowledge graph entities
         
     Returns:
         AgenticRAG instance
@@ -484,5 +525,7 @@ def create_agentic_rag(
         k=k,
         max_retries=max_retries,
         use_reranker=use_reranker,
+        conversation_context=conversation_context,
+        graph_context=graph_context,
     )
 

@@ -23,12 +23,30 @@ class Settings(BaseSettings):
     langchain_tracing_v2: bool = False
 
     # Vector Store (Qdrant)
+    # For local: use qdrant_host + qdrant_port
+    # For Qdrant Cloud: use qdrant_url + qdrant_api_key
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
+    qdrant_url: Optional[str] = None  # Qdrant Cloud URL (e.g., https://xxx.qdrant.io)
+    qdrant_api_key: Optional[str] = None  # Qdrant Cloud API key
     qdrant_collection_name: str = "docmind_documents"
 
-    # Redis (for Celery)
+    # Redis (for Celery + Semantic Cache)
     redis_url: str = "redis://localhost:6379/0"
+    redis_cache_db: int = 1  # Separate DB for semantic cache
+    
+    # Neo4j Knowledge Graph
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "password"
+    
+    # PostgreSQL (Conversation Memory)
+    postgres_url: str = "postgresql://docmind:docmind@localhost:5432/docmind"
+    
+    # Semantic Cache Settings
+    cache_similarity_threshold: float = 0.92  # Cosine similarity for cache hit
+    cache_ttl_seconds: int = 86400  # 24 hours
+    cache_enabled: bool = True
 
     # Document Processing
     # Chunk size: 1000 chars (~250 tokens) - good balance of context and precision

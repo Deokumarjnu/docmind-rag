@@ -1,0 +1,24 @@
+# Render Blueprint for DocMind RAG
+# Deploy: Connect GitHub repo to Render, it auto-detects this file
+
+services:
+  # Backend API
+  - type: web
+    name: docmind-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: QDRANT_HOST
+        sync: false  # Set to your Qdrant Cloud URL
+      - key: QDRANT_API_KEY
+        sync: false  # Set to your Qdrant Cloud API key
+      - key: REDIS_URL
+        sync: false  # Set to your Upstash Redis URL
+      - key: USE_QDRANT_CLOUD
+        value: "true"
+    healthCheckPath: /health
+

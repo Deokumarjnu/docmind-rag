@@ -84,6 +84,10 @@ class QueryRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
     filters: Optional[dict[str, Any]] = None
     include_sources: bool = True
+    conversation_id: Optional[str] = None  # For multi-turn context
+    document_id: Optional[str] = None  # Scope to specific document
+    use_cache: bool = True  # Enable semantic caching
+    use_knowledge_graph: bool = True  # Enable multi-hop reasoning
 
 
 class SourceDocument(BaseModel):
@@ -106,6 +110,9 @@ class QueryResponse(BaseModel):
     enhanced_query: Optional[str] = None
     is_valid: bool = True
     retry_count: int = 0
+    conversation_id: Optional[str] = None
+    cache_hit: bool = False  # Whether response was from cache
+    graph_entities: Optional[list[dict]] = None  # Related entities from KG
 
 
 class DocumentInfo(BaseModel):
@@ -132,5 +139,61 @@ class DeleteDocumentResponse(BaseModel):
 
     document_id: str
     deleted_chunks: int
+    status: str
+
+
+# Conversation schemas
+class CreateConversationRequest(BaseModel):
+    """Request to create a new conversation."""
+    
+    user_id: Optional[str] = None
+    document_id: Optional[str] = None
+    title: Optional[str] = None
+
+
+class ConversationResponse(BaseModel):
+    """Response with conversation details."""
+    
+    id: str
+    title: Optional[str]
+    document_id: Optional[str]
+    message_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class MessageResponse(BaseModel):
+    """Response for a single message."""
+    
+    id: str
+    role: str
+    content: str
+    timestamp: datetime
+    sources: Optional[list[dict]] = None
+
+
+class ConversationListResponse(BaseModel):
+    """Response for listing conversations."""
+    
+    conversations: list[ConversationResponse]
+    total: int
+
+
+# Cache and Graph stats
+class CacheStatsResponse(BaseModel):
+    """Cache statistics response."""
+    
+    hits: int
+    misses: int
+    sets: int
+    hit_rate: str
+    total_requests: int
+
+
+class GraphStatsResponse(BaseModel):
+    """Knowledge graph statistics response."""
+    
+    entity_count: int
+    relationship_count: int
     status: str
 

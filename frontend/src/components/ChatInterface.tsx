@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Send, Bot, User, FileText, Loader2 } from 'lucide-react'
 import SourceViewer from './SourceViewer'
+import { API_ENDPOINTS, FEATURES } from '../config'
 
 interface Message {
   id: string
@@ -57,13 +58,15 @@ export default function ChatInterface() {
     }])
 
     try {
-      const response = await fetch('/api/query', {
+      const response = await fetch(API_ENDPOINTS.query, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: input,
           top_k: 5,
           include_sources: true,
+          use_cache: FEATURES.enableCache,
+          use_knowledge_graph: FEATURES.enableKnowledgeGraph,
         }),
       })
 

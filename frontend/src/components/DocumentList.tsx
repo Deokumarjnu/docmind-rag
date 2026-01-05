@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { FileText, Trash2, RefreshCw, Loader2, AlertCircle } from 'lucide-react'
+import { API_ENDPOINTS } from '../config'
 
 interface Document {
   document_id: string
@@ -21,7 +22,7 @@ export default function DocumentList() {
     setError(null)
     
     try {
-      const response = await fetch('/api/documents')
+      const response = await fetch(API_ENDPOINTS.documents)
       const data = await response.json()
       setDocuments(data.documents || [])
     } catch (err) {
@@ -41,7 +42,7 @@ export default function DocumentList() {
     setDeletingId(documentId)
     
     try {
-      await fetch(`/api/documents/${encodeURIComponent(documentId)}`, {
+      await fetch(API_ENDPOINTS.document(documentId), {
         method: 'DELETE',
       })
       setDocuments(prev => prev.filter(d => d.document_id !== documentId))

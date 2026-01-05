@@ -47,6 +47,13 @@ langdetect
 celery
 redis
 
+# Neo4j Knowledge Graph
+neo4j>=5.0.0
+
+# PostgreSQL (Conversation Memory)
+asyncpg
+sqlalchemy[asyncio]>=2.0.0
+
 # Utilities
 pydantic
 pydantic-settings

@@ -11,10 +11,16 @@ services:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=password
+      - POSTGRES_URL=postgresql://docmind:docmind@postgres:5432/docmind
       - DEBUG=false
     depends_on:
       - qdrant
       - redis
+      - neo4j
+      - postgres
     volumes:
       - ./backend:/app
       - upload_data:/app/uploads
@@ -29,9 +35,15 @@ services:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=password
+      - POSTGRES_URL=postgresql://docmind:docmind@postgres:5432/docmind
     depends_on:
       - qdrant
       - redis
+      - neo4j
+      - postgres
     volumes:
       - ./backend:/app
       - upload_data:/app/uploads
@@ -47,13 +59,43 @@ services:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
-  # Redis for Celery
+  # Redis for Celery + Semantic Cache
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
+
+  # Neo4j Knowledge Graph
+  neo4j:
+    image: neo4j:5-community
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_memory_pagecache_size=512M
+      - NEO4J_dbms_memory_heap_initial__size=512M
+      - NEO4J_dbms_memory_heap_max__size=1G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    restart: unless-stopped
+
+  # PostgreSQL for Conversation Memory
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=docmind
+      - POSTGRES_PASSWORD=docmind
+      - POSTGRES_DB=docmind
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   # React Frontend
@@ -69,4 +111,7 @@ volumes:
   qdrant_data:
   redis_data:
   upload_data:
+  neo4j_data:
+  neo4j_logs:
+  postgres_data:
 
