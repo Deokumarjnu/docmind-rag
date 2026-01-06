@@ -19,8 +19,11 @@ from app.workers.tasks import (
 
 router = APIRouter()
 
-# Directory for temporary uploads
-UPLOAD_DIR = Path(tempfile.gettempdir()) / "docmind_uploads"
+# Directory for temporary uploads - use shared volume in Docker
+# Falls back to /tmp for local development
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/app/uploads"))
+if not UPLOAD_DIR.exists():
+    UPLOAD_DIR = Path(tempfile.gettempdir()) / "docmind_uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 

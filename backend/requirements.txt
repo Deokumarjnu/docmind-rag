@@ -40,6 +40,9 @@ rank-bm25
 # Reranking
 sentence-transformers
 
+# Scientific computing (pinned for pre-built wheels)
+scipy>=1.11.0
+
 # Language Detection
 langdetect
 
