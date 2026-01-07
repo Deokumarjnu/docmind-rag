@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocMind RAG - Complete Architecture Flow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            padding: 30px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #94a3b8;
+            font-size: 18px;
+        }
+        
+        .main-flow {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        
+        /* Section Styles */
+        .section {
+            border-radius: 20px;
+            padding: 25px;
+            position: relative;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            padding: 8px 20px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Frontend Section */
+        .frontend {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .frontend .section-title {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        /* Upload Pipeline */
+        .upload-pipeline {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .upload-pipeline .section-title {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        /* Deep Agents */
+        .deep-agents {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        .deep-agents .section-title {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+        
+        /* Query Pipeline */
+        .query-pipeline {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0.05) 100%);
+            border: 2px solid rgba(236, 72, 153, 0.3);
+        }
+        
+        .query-pipeline .section-title {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            color: white;
+        }
+        
+        /* Data Layer */
+        .data-layer {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border: 2px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .data-layer .section-title {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        /* Flow Components */
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        .flow-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px 20px;
+            text-align: center;
+            min-width: 130px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .flow-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .flow-box .icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .flow-box .title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 3px;
+        }
+        
+        .flow-box .subtitle {
+            font-size: 10px;
+            color: #94a3b8;
+        }
+        
+        .arrow {
+            color: #64748b;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .arrow-down {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+            font-size: 28px;
+            color: #64748b;
+        }
+        
+        /* Specialist Agents Grid */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .agent-box {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .agent-box .icon {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+        
+        .agent-box .title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #c4b5fd;
+            margin-bottom: 5px;
+        }
+        
+        .agent-box .desc {
+            font-size: 10px;
+            color: #94a3b8;
+        }
+        
+        /* Database Grid */
+        .db-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .db-box {
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .db-box.qdrant {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+        
+        .db-box.redis {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        
+        .db-box.neo4j {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        
+        .db-box.postgres {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+        
+        .db-box.celery {
+            background: linear-gradient(135deg, rgba(168, 162, 158, 0.3), rgba(168, 162, 158, 0.1));
+            border: 1px solid rgba(168, 162, 158, 0.4);
+        }
+        
+        .db-box .icon {
+            font-size: 35px;
+            margin-bottom: 10px;
+        }
+        
+        .db-box .title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-bottom: 5px;
+        }
+        
+        .db-box .desc {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+        
+        .db-box .port {
+            margin-top: 8px;
+            font-size: 10px;
+            color: #64748b;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Tech Stack Badge */
+        .tech-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            color: #94a3b8;
+            margin: 3px;
+        }
+        
+        /* LangGraph Workflow */
+        .langgraph-flow {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        
+        .langgraph-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #f0abfc;
+            margin-bottom: 15px;
+        }
+        
+        /* Workflow Node */
+        .workflow-node {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(236, 72, 153, 0.05));
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 10px;
+            padding: 12px 18px;
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .workflow-node .step {
+            font-size: 10px;
+            color: #f9a8d4;
+            font-weight: 600;
+        }
+        
+        .workflow-node .title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fce7f3;
+        }
+        
+        /* Self-Correction Loop */
+        .loop-indicator {
+            position: relative;
+            padding: 5px 15px;
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px dashed rgba(245, 158, 11, 0.5);
+            border-radius: 8px;
+            font-size: 10px;
+            color: #fbbf24;
+        }
+        
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 1200px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Tech Stack Section */
+        .tech-stack {
+            background: linear-gradient(135deg, rgba(71, 85, 105, 0.3) 0%, rgba(71, 85, 105, 0.1) 100%);
+            border: 2px solid rgba(71, 85, 105, 0.3);
+        }
+        
+        .tech-stack .section-title {
+            background: linear-gradient(135deg, #64748b, #475569);
+            color: white;
+        }
+        
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .tech-category {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+        }
+        
+        .tech-category h4 {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .tech-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .tech-item .name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .tech-item .detail {
+            font-size: 10px;
+            color: #64748b;
+            margin-left: auto;
+        }
+        
+        /* Connector Lines */
+        .connector {
+            width: 2px;
+            height: 30px;
+            background: linear-gradient(180deg, rgba(100, 116, 139, 0.5), rgba(100, 116, 139, 0));
+            margin: 0 auto;
+        }
+        
+        /* Metrics Bar */
+        .metrics-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+        }
+        
+        .metric {
+            text-align: center;
+        }
+        
+        .metric .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+        
+        .metric .label {
+            font-size: 11px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🧠 DocMind RAG Architecture</h1>
+            <p>Enterprise Document Intelligence Platform with Agentic RAG</p>
+        </div>
+        
+        <div class="main-flow">
+            <!-- Frontend Layer -->
+            <div class="section frontend">
+                <span class="section-title">🖥️ FRONTEND (React + TypeScript + Vite)</span>
+                <div class="flow-row">
+                    <div class="flow-box">
+                        <div class="icon">👤</div>
+                        <div class="title">User</div>
+                        <div class="subtitle">Port: 3000</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box">
+                        <div class="icon">💬</div>
+                        <div class="title">ChatInterface</div>
+                        <div class="subtitle">Streaming SSE</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box">
+                        <div class="icon">📤</div>
+                        <div class="title">FileUpload</div>
+                        <div class="subtitle">Multi-format</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box">
+                        <div class="icon">📚</div>
+                        <div class="title">DocumentList</div>
+                        <div class="subtitle">CRUD Ops</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box">
+                        <div class="icon">📖</div>
+                        <div class="title">SourceViewer</div>
+                        <div class="subtitle">Citations</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <span class="tech-badge">⚡ TailwindCSS</span>
+                    <span class="tech-badge">📝 ReactMarkdown</span>
+                    <span class="tech-badge">🎨 Lucide Icons</span>
+                </div>
+            </div>
+            
+            <div class="arrow-down">⬇️</div>
+            
+            <!-- API Layer -->
+            <div class="section upload-pipeline">
+                <span class="section-title">🚀 BACKEND API (FastAPI + LangChain)</span>
+                <div class="flow-row">
+                    <div class="flow-box">
+                        <div class="icon">🔌</div>
+                        <div class="title">FastAPI</div>
+                        <div class="subtitle">Port: 8000</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box">
+                        <div class="icon">📡</div>
+                        <div class="title">REST API</div>
+                        <div class="subtitle">/api/*</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box">
+                        <div class="icon">📋</div>
+                        <div class="title">Routes</div>
+                        <div class="subtitle">upload, query, docs</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box">
+                        <div class="icon">✅</div>
+                        <div class="title">Pydantic</div>
+                        <div class="subtitle">Validation</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="two-col">
+                <!-- Document Upload Pipeline -->
+                <div class="section upload-pipeline">
+                    <span class="section-title">📤 DOCUMENT UPLOAD PIPELINE</span>
+                    
+                    <div class="flow-row">
+                        <div class="flow-box">
+                            <div class="icon">📄</div>
+                            <div class="title">File Upload</div>
+                            <div class="subtitle">PDF, CSV, XLSX, JSON, MD</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-box">
+                            <div class="icon">💾</div>
+                            <div class="title">Save to Volume</div>
+                            <div class="subtitle">/app/uploads/</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-box">
+                            <div class="icon">📬</div>
+                            <div class="title">Celery Queue</div>
+                            <div class="subtitle">Async Task</div>
+                        </div>
+                    </div>
+                    
+                    <div class="arrow-down">⬇️</div>
+                    
+                    <div class="flow-row">
+                        <div class="flow-box">
+                            <div class="icon">📑</div>
+                            <div class="title">PyMuPDF</div>
+                            <div class="subtitle">Load Pages</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-box">
+                            <div class="icon">🏷️</div>
+                            <div class="title">Page Classifier</div>
+                            <div class="subtitle">Text/Table/Image/Code</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-box">
+                            <div class="icon">🎯</div>
+                            <div class="title">Route to Agent</div>
+                            <div class="subtitle">Content-aware</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Deep Agents -->
+                <div class="section deep-agents">
+                    <span class="section-title">🤖 DEEP AGENT ORCHESTRATOR</span>
+                    
+                    <div class="agents-grid">
+                        <div class="agent-box">
+                            <div class="icon">📝</div>
+                            <div class="title">Text Specialist</div>
+                            <div class="desc">Structure Detection, Header/Footer Removal</div>
+                        </div>
+                        <div class="agent-box">
+                            <div class="icon">📊</div>
+                            <div class="title">Table Specialist</div>
+                            <div class="desc">Multi-page Merge, Markdown Format</div>
+                        </div>
+                        <div class="agent-box">
+                            <div class="icon">📈</div>
+                            <div class="title">Chart Specialist</div>
+                            <div class="desc">GPT-4o Vision Analysis</div>
+                        </div>
+                        <div class="agent-box">
+                            <div class="icon">💻</div>
+                            <div class="title">Code Specialist</div>
+                            <div class="desc">AST-based Chunking</div>
+                        </div>
+                        <div class="agent-box">
+                            <div class="icon">✍️</div>
+                            <div class="title">Handwriting</div>
+                            <div class="desc">OCR + Vision LLM</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chunking & Embedding -->
+            <div class="section upload-pipeline">
+                <span class="section-title">✂️ CONTENT-AWARE CHUNKING & EMBEDDING</span>
+                <div class="flow-row">
+                    <div class="flow-box">
+                        <div class="icon">📄</div>
+                        <div class="title">Text Chunks</div>
+                        <div class="subtitle">1000 chars, 200 overlap</div>
+                    </div>
+                    <div class="flow-box">
+                        <div class="icon">📊</div>
+                        <div class="title">Table Chunks</div>
+                        <div class="subtitle">Whole Table (no split)</div>
+                    </div>
+                    <div class="flow-box">
+                        <div class="icon">💻</div>
+                        <div class="title">Code Chunks</div>
+                        <div class="subtitle">By Function/Class</div>
+                    </div>
+                    <div class="flow-box">
+                        <div class="icon">📈</div>
+                        <div class="title">Visual Chunks</div>
+                        <div class="subtitle">Single + Description</div>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="flow-box" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1)); border-color: rgba(16, 185, 129, 0.4);">
+                        <div class="icon">🧮</div>
+                        <div class="title">text-embedding-3-large</div>
+                        <div class="subtitle">3072 dimensions</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="arrow-down">⬇️ Store in Databases ⬇️</div>
+            
+            <!-- Data Layer -->
+            <div class="section data-layer">
+                <span class="section-title">💾 DATA LAYER (Persistent Storage)</span>
+                <div class="db-grid">
+                    <div class="db-box qdrant">
+                        <div class="icon">🔍</div>
+                        <div class="title">Qdrant</div>
+                        <div class="desc">Vector Store<br>Semantic Similarity Search<br>Cosine Distance</div>
+                        <div class="port">:6333</div>
+                    </div>
+                    <div class="db-box redis">
+                        <div class="icon">⚡</div>
+                        <div class="title">Redis</div>
+                        <div class="desc">Semantic Cache<br>Celery Message Broker<br>92% Similarity Threshold</div>
+                        <div class="port">:6379</div>
+                    </div>
+                    <div class="db-box neo4j">
+                        <div class="icon">🕸️</div>
+                        <div class="title">Neo4j</div>
+                        <div class="desc">Knowledge Graph<br>Entity Relationships<br>Multi-hop Reasoning</div>
+                        <div class="port">:7687</div>
+                    </div>
+                    <div class="db-box postgres">
+                        <div class="icon">🗄️</div>
+                        <div class="title">PostgreSQL</div>
+                        <div class="desc">Conversation Memory<br>Multi-turn Context<br>Message History</div>
+                        <div class="port">:5432</div>
+                    </div>
+                    <div class="db-box celery">
+                        <div class="icon">🔄</div>
+                        <div class="title">Celery Worker</div>
+                        <div class="desc">Async Processing<br>Progress Tracking<br>Background Tasks</div>
+                        <div class="port">Redis Backend</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="arrow-down">⬆️ Query Flow ⬆️</div>
+            
+            <!-- Query Pipeline (Agentic RAG) -->
+            <div class="section query-pipeline">
+                <span class="section-title">🔍 AGENTIC RAG QUERY PIPELINE (LangGraph Workflow)</span>
+                
+                <div class="langgraph-flow">
+                    <div class="langgraph-title">⚙️ LangGraph State Machine with Self-Correction</div>
+                    
+                    <div class="flow-row">
+                        <div class="workflow-node">
+                            <div class="step">STEP 1</div>
+                            <div class="title">Cache Check</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="workflow-node">
+                            <div class="step">STEP 2</div>
+                            <div class="title">Query Enhance</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="workflow-node">
+                            <div class="step">STEP 3</div>
+                            <div class="title">KG Lookup</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="workflow-node">
+                            <div class="step">STEP 4</div>
+                            <div class="title">Hybrid Retrieval</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="workflow-node">
+                            <div class="step">STEP 5</div>
+                            <div class="title">Reranking</div>
+                        </div>
+                    </div>
+                    
+                    <div class="arrow-down">⬇️</div>
+                    
+                    <div class="flow-row">
+                        <div class="loop-indicator">🔄 Self-Correction Loop (max 2 retries)</div>
+                    </div>
+                    
+                    <div class="flow-row">
+                        <div class="workflow-node">
+                            <div class="step">STEP 6</div>
+                            <div class="title">Validate Retrieval</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="workflow-node">
+                            <div class="step">STEP 7</div>
+                            <div class="title">Generate Answer</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="workflow-node">
+                            <div class="step">STEP 8</div>
+                            <div class="title">Validate Answer</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="workflow-node">
+                            <div class="step">STEP 9</div>
+                            <div class="title">Cache & Store</div>
+                        </div>
+                        <span class="arrow">→</span>
+                        <div class="flow-box" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1)); border-color: rgba(16, 185, 129, 0.4);">
+                            <div class="icon">✅</div>
+                            <div class="title">Response</div>
+                            <div class="subtitle">+ Citations</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flow-row" style="margin-top: 20px;">
+                    <div class="flow-box">
+                        <div class="icon">🔤</div>
+                        <div class="title">Acronym Expand</div>
+                        <div class="subtitle">CoT → Chain of Thought</div>
+                    </div>
+                    <div class="flow-box">
+                        <div class="icon">🔀</div>
+                        <div class="title">Hybrid Retrieval</div>
+                        <div class="subtitle">Dense 60% + BM25 40%</div>
+                    </div>
+                    <div class="flow-box">
+                        <div class="icon">📊</div>
+                        <div class="title">RRF Fusion</div>
+                        <div class="subtitle">Reciprocal Rank</div>
+                    </div>
+                    <div class="flow-box">
+                        <div class="icon">🎯</div>
+                        <div class="title">Cross-Encoder</div>
+                        <div class="subtitle">ms-marco-MiniLM</div>
+                    </div>
+                    <div class="flow-box">
+                        <div class="icon">🧠</div>
+                        <div class="title">GPT-5.2</div>
+                        <div class="subtitle">400K Context</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tech Stack Summary -->
+            <div class="section tech-stack">
+                <span class="section-title">🛠️ TECHNOLOGY STACK</span>
+                <div class="tech-grid">
+                    <div class="tech-category">
+                        <h4>Frontend</h4>
+                        <div class="tech-item">
+                            <span class="name">⚛️ React + TypeScript</span>
+                            <span class="detail">UI Framework</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">⚡ Vite</span>
+                            <span class="detail">Build Tool</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">🎨 TailwindCSS</span>
+                            <span class="detail">Styling</span>
+                        </div>
+                    </div>
+                    <div class="tech-category">
+                        <h4>Backend</h4>
+                        <div class="tech-item">
+                            <span class="name">🚀 FastAPI</span>
+                            <span class="detail">REST API</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">🦜 LangChain</span>
+                            <span class="detail">RAG Framework</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">📊 LangGraph</span>
+                            <span class="detail">Agentic Workflow</span>
+                        </div>
+                    </div>
+                    <div class="tech-category">
+                        <h4>AI/ML</h4>
+                        <div class="tech-item">
+                            <span class="name">🧠 GPT-5.2</span>
+                            <span class="detail">Generation</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">👁️ GPT-4o Vision</span>
+                            <span class="detail">Charts/Images</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">📐 text-embedding-3-large</span>
+                            <span class="detail">3072 dims</span>
+                        </div>
+                    </div>
+                    <div class="tech-category">
+                        <h4>Data Processing</h4>
+                        <div class="tech-item">
+                            <span class="name">📄 PyMuPDF</span>
+                            <span class="detail">PDF Extraction</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">📑 Unstructured</span>
+                            <span class="detail">Tables/OCR</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">🔤 BM25</span>
+                            <span class="detail">Sparse Search</span>
+                        </div>
+                    </div>
+                    <div class="tech-category">
+                        <h4>Infrastructure</h4>
+                        <div class="tech-item">
+                            <span class="name">🐳 Docker</span>
+                            <span class="detail">Containers</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">🔄 Celery</span>
+                            <span class="detail">Async Tasks</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="name">📈 LangSmith</span>
+                            <span class="detail">Observability</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Metrics -->
+            <div class="metrics-bar">
+                <div class="metric">
+                    <div class="value">3072</div>
+                    <div class="label">Embedding Dimensions</div>
+                </div>
+                <div class="metric">
+                    <div class="value">1000</div>
+                    <div class="label">Chunk Size (chars)</div>
+                </div>
+                <div class="metric">
+                    <div class="value">60:40</div>
+                    <div class="label">Dense:Sparse Ratio</div>
+                </div>
+                <div class="metric">
+                    <div class="value">0.92</div>
+                    <div class="label">Cache Threshold</div>
+                </div>
+                <div class="metric">
+                    <div class="value">400K</div>
+                    <div class="label">Context Window</div>
+                </div>
+                <div class="metric">
+                    <div class="value">2</div>
+                    <div class="label">Max Retries</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
