@@ -2,6 +2,12 @@
 
 This module provides background tasks for processing large documents
 with progress tracking and error handling.
+
+Supports multiple file formats:
+- PDF, DOCX, HTML, TXT (original)
+- CSV, XLSX/XLS (spreadsheets)
+- JSON, JSONL (structured data)
+- Markdown (documentation)
 """
 
 import logging
@@ -21,8 +27,15 @@ from app.workers.celery_app import celery_app
 from app.agents.orchestrator import DocumentProcessingOrchestrator
 from app.vectorstore.store import add_documents_sync
 from app.ingestion.content_chunker import chunk_documents
+from app.ingestion.document_loaders import UnifiedDocumentLoader, load_document
 
 logger = logging.getLogger(__name__)
+
+# File types that need special PDF processing
+PDF_TYPES = {"pdf"}
+
+# File types that can be loaded directly without page-by-page processing
+SIMPLE_LOAD_TYPES = {"txt", "html", "htm", "csv", "xlsx", "xls", "json", "jsonl", "md", "markdown", "docx", "doc"}
 
 
 def extract_knowledge_graph_sync(chunks, document_id: str) -> dict:
@@ -263,6 +276,145 @@ def process_document_simple_task(
         
     except Exception as e:
         logger.error(f"Simple processing failed: {e}")
+        raise
+
+
+@celery_app.task(bind=True, name="process_generic_document")
+def process_generic_document_task(
+    self,
+    file_path: str,
+    document_id: str,
+    user_id: Optional[str] = None,
+):
+    """
+    Process non-PDF documents (CSV, Excel, JSON, Markdown, etc.).
+    
+    Uses the unified document loader for simpler file types.
+    
+    Args:
+        file_path: Path to the document file
+        document_id: Unique document identifier
+        user_id: Optional user identifier
+        
+    Returns:
+        Processing result dictionary
+    """
+    from app.vectorstore.store import get_vector_store
+    
+    file_path = Path(file_path)
+    file_ext = file_path.suffix.lower().lstrip(".")
+    
+    logger.info(f"Starting generic document processing: {document_id} ({file_ext})")
+    
+    try:
+        # Update progress: Loading
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'percent': 10,
+                'status': f'Loading {file_ext.upper()} file...',
+            }
+        )
+        
+        # Load document using unified loader
+        loader = UnifiedDocumentLoader()
+        documents = loader.load(file_path)
+        
+        logger.info(f"Loaded {len(documents)} document sections from {file_ext}")
+        
+        # Update progress: Chunking
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'percent': 30,
+                'status': f'Chunking {len(documents)} sections...',
+            }
+        )
+        
+        # Chunk documents
+        chunks = chunk_documents(documents)
+        
+        # Add metadata
+        for chunk in chunks:
+            chunk.metadata["source"] = document_id
+            chunk.metadata["original_file"] = file_path.name
+            chunk.metadata["file_extension"] = file_ext
+            if user_id:
+                chunk.metadata["user_id"] = user_id
+        
+        logger.info(f"Created {len(chunks)} chunks")
+        
+        # Update progress: Embedding & Storing
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'percent': 50,
+                'status': f'Embedding {len(chunks)} chunks...',
+            }
+        )
+        
+        # Store in vector database with batch progress
+        vector_store = get_vector_store()
+        batch_size = 50
+        total_chunks = len(chunks)
+        
+        for i in range(0, total_chunks, batch_size):
+            batch = chunks[i:i + batch_size]
+            vector_store.add_documents(batch)
+            
+            # Update progress (50-90%)
+            batch_progress = min(i + batch_size, total_chunks)
+            percent = 50 + int((batch_progress / total_chunks) * 40)
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'percent': percent,
+                    'status': f'Stored {batch_progress}/{total_chunks} chunks',
+                }
+            )
+        
+        # Knowledge graph extraction (optional, for structured data)
+        kg_entities = 0
+        kg_relations = 0
+        
+        if file_ext in {"json", "jsonl", "csv", "xlsx", "xls"}:
+            try:
+                self.update_state(
+                    state='PROGRESS',
+                    meta={
+                        'percent': 95,
+                        'status': 'Extracting knowledge graph...',
+                    }
+                )
+                kg_result = extract_knowledge_graph_sync(chunks[:30], document_id)
+                kg_entities = kg_result.get("total_entities", 0)
+                kg_relations = kg_result.get("total_relations", 0)
+            except Exception as e:
+                logger.warning(f"KG extraction failed (non-critical): {e}")
+        
+        result = {
+            'status': 'completed',
+            'document_id': document_id,
+            'file_type': file_ext,
+            'total_sections': len(documents),
+            'total_chunks': len(chunks),
+            'kg_entities': kg_entities,
+            'kg_relations': kg_relations,
+            'errors': [],
+        }
+        
+        logger.info(f"Completed processing {file_ext}: {document_id}, {len(chunks)} chunks")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Generic document processing failed: {e}")
+        self.update_state(
+            state='FAILURE',
+            meta={
+                'status': 'failed',
+                'error': str(e),
+            }
+        )
         raise
 
 

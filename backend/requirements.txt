@@ -17,6 +17,15 @@ pymupdf
 unstructured[pdf]
 python-docx
 beautifulsoup4
+docx2txt
+
+# Spreadsheet Support (CSV, Excel)
+pandas
+openpyxl
+xlrd
+
+# Markdown Support
+markdown
 
 # Vector Store
 qdrant-client

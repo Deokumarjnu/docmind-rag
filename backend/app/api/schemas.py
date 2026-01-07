@@ -94,7 +94,7 @@ class SourceDocument(BaseModel):
     """Source document returned with query response."""
 
     content: str
-    page: int
+    page: Optional[int] = None  # Optional for non-paginated documents (CSV, JSON, etc.)
     source: str
     content_type: ContentType
     relevance_score: float

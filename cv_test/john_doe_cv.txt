@@ -1,0 +1,76 @@
+JOHN DOE - SOFTWARE ENGINEER
+=============================
+
+CONTACT INFORMATION
+-------------------
+Email: john.doe@email.com
+Phone: +1-555-123-4567
+Location: San Francisco, CA
+LinkedIn: linkedin.com/in/johndoe
+GitHub: github.com/johndoe
+
+PROFESSIONAL SUMMARY
+--------------------
+Senior Software Engineer with 8 years of experience in building scalable distributed systems.
+Specialized in Python, Go, and Kubernetes. Led teams of 5-10 engineers at major tech companies.
+Passionate about machine learning infrastructure and MLOps.
+
+WORK EXPERIENCE
+---------------
+
+SENIOR SOFTWARE ENGINEER | Google | 2021 - Present
+- Led the development of a real-time data pipeline processing 10 million events per second
+- Designed and implemented microservices architecture using Kubernetes and Istio
+- Reduced infrastructure costs by 40% through optimization of cloud resources
+- Mentored 5 junior engineers and conducted 50+ technical interviews
+
+SOFTWARE ENGINEER | Meta (Facebook) | 2018 - 2021
+- Built recommendation systems serving 2 billion daily active users
+- Developed Python libraries for ML model deployment, used by 200+ engineers
+- Implemented A/B testing framework that increased experiment velocity by 3x
+- Contributed to open-source projects including PyTorch and React
+
+SOFTWARE ENGINEER | Uber | 2016 - 2018
+- Developed real-time pricing algorithms for surge pricing optimization
+- Built Go microservices handling 1 million requests per second
+- Created monitoring dashboards using Grafana and Prometheus
+
+EDUCATION
+---------
+Master of Science in Computer Science | Stanford University | 2016
+- Thesis: "Distributed Systems for Real-Time Machine Learning"
+- GPA: 3.9/4.0
+
+Bachelor of Science in Computer Science | MIT | 2014
+- Graduated with Honors
+- Dean's List all semesters
+
+SKILLS
+------
+Programming Languages: Python, Go, Java, JavaScript, Rust, C++
+Frameworks: TensorFlow, PyTorch, FastAPI, Django, React
+Infrastructure: Kubernetes, Docker, AWS, GCP, Terraform
+Databases: PostgreSQL, Redis, Cassandra, MongoDB, Elasticsearch
+
+CERTIFICATIONS
+--------------
+- AWS Solutions Architect Professional (2023)
+- Google Cloud Professional Data Engineer (2022)
+- Certified Kubernetes Administrator (CKA) (2021)
+
+PUBLICATIONS
+------------
+1. "Scaling Machine Learning Pipelines at Google" - KDD 2023
+2. "Real-Time Recommendations at Facebook Scale" - RecSys 2020
+
+LANGUAGES
+---------
+- English (Native)
+- Spanish (Fluent)
+- Mandarin (Intermediate)
+
+HOBBIES
+-------
+- Open source contributions
+- Rock climbing
+- Playing guitar

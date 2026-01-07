@@ -1,4 +1,12 @@
-"""Upload endpoints with async processing and progress tracking."""
+"""Upload endpoints with async processing and progress tracking.
+
+Supports multiple file formats:
+- PDF: Full processing with page classification and deep agents
+- DOCX, HTML, TXT: Text documents
+- CSV, XLSX/XLS: Spreadsheets (converted to searchable text)
+- JSON, JSONL: Structured data
+- Markdown: Documentation files
+"""
 
 import os
 import tempfile
@@ -14,10 +22,17 @@ from app.config import settings
 from app.workers.tasks import (
     process_document_task,
     process_document_simple_task,
+    process_generic_document_task,
     get_task_status,
 )
 
 router = APIRouter()
+
+# File types that need PDF-specific processing
+PDF_TYPES = {"pdf"}
+
+# File types that use the generic document loader
+GENERIC_TYPES = {"txt", "html", "htm", "csv", "xlsx", "xls", "json", "jsonl", "md", "markdown", "docx", "doc"}
 
 # Directory for temporary uploads - use shared volume in Docker
 # Falls back to /tmp for local development
@@ -35,12 +50,16 @@ async def upload_document(
     """
     Upload a document for processing and indexing.
     
-    Supports PDF, DOCX, HTML, and TXT files.
-    Large documents are processed asynchronously with progress tracking.
+    Supports multiple file formats:
+    - PDF: Full processing with page classification and deep agents
+    - DOCX, HTML, TXT: Text documents  
+    - CSV, XLSX/XLS: Spreadsheets (converted to searchable text)
+    - JSON, JSONL: Structured data
+    - Markdown: Documentation files
     
     Args:
         file: The document file to upload
-        use_deep_agents: Whether to use deep agent orchestration (slower but smarter)
+        use_deep_agents: Whether to use deep agent orchestration (slower but smarter, PDF only)
         
     Returns:
         Upload response with task ID for tracking
@@ -74,24 +93,34 @@ async def upload_document(
     async with aiofiles.open(file_path, 'wb') as f:
         await f.write(contents)
 
-    # Queue processing task
+    # Queue processing task based on file type
     try:
-        if use_deep_agents:
-            task = process_document_task.delay(
-                str(file_path),
-                document_id,
-            )
+        if extension in PDF_TYPES:
+            # PDF files use specialized processing
+            if use_deep_agents:
+                task = process_document_task.delay(
+                    str(file_path),
+                    document_id,
+                )
+            else:
+                task = process_document_simple_task.delay(
+                    str(file_path),
+                    document_id,
+                )
+            processing_type = "pdf_deep" if use_deep_agents else "pdf_simple"
         else:
-            task = process_document_simple_task.delay(
+            # All other file types use generic loader
+            task = process_generic_document_task.delay(
                 str(file_path),
                 document_id,
             )
+            processing_type = "generic"
         
         return UploadResponse(
             task_id=task.id,
             filename=file.filename,
             status="processing",
-            message="Document upload initiated. Processing will begin shortly.",
+            message=f"Document upload initiated ({extension.upper()}). Processing will begin shortly.",
         )
         
     except Exception as e:
@@ -147,9 +176,13 @@ async def upload_document_sync(
     This endpoint processes the document immediately and waits for completion.
     Use for smaller documents or when immediate results are needed.
     
+    Supports all file formats: PDF, DOCX, CSV, XLSX, JSON, Markdown, etc.
+    
     WARNING: May timeout for large documents. Use async upload for large files.
     """
     from app.ingestion.parallel_processor import process_pdf_parallel
+    from app.ingestion.document_loaders import load_document
+    from app.ingestion.content_chunker import chunk_documents
     from app.vectorstore.store import add_documents_sync
     
     # Validate file
@@ -157,10 +190,10 @@ async def upload_document_sync(
         raise HTTPException(status_code=400, detail="No filename provided")
 
     extension = file.filename.split(".")[-1].lower()
-    if extension != "pdf":
+    if extension not in settings.allowed_extensions:
         raise HTTPException(
             status_code=400,
-            detail="Sync upload currently only supports PDF files",
+            detail=f"File type '{extension}' not allowed. Allowed: {settings.allowed_extensions}",
         )
 
     # Read file
@@ -181,12 +214,19 @@ async def upload_document_sync(
         await f.write(contents)
 
     try:
-        # Process synchronously
-        chunks = process_pdf_parallel(str(file_path))
+        # Process based on file type
+        if extension in PDF_TYPES:
+            # PDF uses parallel processor
+            chunks = process_pdf_parallel(str(file_path))
+        else:
+            # Other formats use unified loader
+            documents = load_document(str(file_path))
+            chunks = chunk_documents(documents)
         
         # Add source metadata
         for chunk in chunks:
             chunk.metadata["source"] = document_id
+            chunk.metadata["file_extension"] = extension
         
         # Store in vector database
         add_documents_sync(chunks)
@@ -198,6 +238,7 @@ async def upload_document_sync(
             "status": "completed",
             "document_id": document_id,
             "filename": file.filename,
+            "file_type": extension,
             "total_chunks": len(chunks),
         }
         

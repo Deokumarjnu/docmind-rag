@@ -1,0 +1,38 @@
+[
+  {
+    "id": "PROD001",
+    "name": "MacBook Pro 16",
+    "category": "Laptops",
+    "price": 2499.99,
+    "specs": {
+      "cpu": "Apple M3 Max",
+      "ram": "36GB",
+      "storage": "1TB SSD"
+    },
+    "in_stock": true
+  },
+  {
+    "id": "PROD002", 
+    "name": "iPhone 15 Pro",
+    "category": "Smartphones",
+    "price": 1199.99,
+    "specs": {
+      "cpu": "A17 Pro",
+      "ram": "8GB",
+      "storage": "256GB"
+    },
+    "in_stock": true
+  },
+  {
+    "id": "PROD003",
+    "name": "iPad Air",
+    "category": "Tablets",
+    "price": 799.99,
+    "specs": {
+      "cpu": "Apple M2",
+      "ram": "8GB",
+      "storage": "256GB"
+    },
+    "in_stock": false
+  }
+]
