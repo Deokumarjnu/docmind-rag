@@ -473,11 +473,72 @@
             </div>
         </div>
         
-        <!-- Slide 2: The Problem -->
+        <!-- Slide 2: Company Problem Context -->
         <div class="slide" data-slide="2">
             <div class="slide-header">
-                <div class="slide-number">01 / THE PROBLEM</div>
-                <div class="slide-title">What Problem Are We Solving?</div>
+                <div class="slide-number">01 / BUSINESS CONTEXT</div>
+                <div class="slide-title">The K-12 EdTech Knowledge Crisis</div>
+                <div class="slide-subtitle">Why school districts and education companies struggle with information access</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-left">
+                    <div class="card animate-in delay-1">
+                        <div class="card-title">
+                            <span class="icon icon-orange">🏫</span>
+                            K-12 EdTech Reality
+                        </div>
+                        <ul class="bullet-list">
+                            <li>Thousands of school districts as customers</li>
+                            <li>Compliance docs: FERPA, COPPA, SOC2, State Laws</li>
+                            <li>Product documentation across multiple solutions</li>
+                            <li>HR policies, SOPs, security protocols</li>
+                            <li>Employee & district data across systems</li>
+                        </ul>
+                    </div>
+                    <div class="card animate-in delay-2">
+                        <div class="card-title">
+                            <span class="icon icon-pink">💸</span>
+                            The Cost of Poor Search
+                        </div>
+                        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+                            <div class="stat-card">
+                                <div class="stat-value">2.5h</div>
+                                <div class="stat-label">Daily time searching</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">$25K</div>
+                                <div class="stat-label">Lost per employee/year</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-right">
+                    <div class="card animate-in delay-3">
+                        <div class="card-title">
+                            <span class="icon icon-cyan">❓</span>
+                            Questions Teams Ask Daily
+                        </div>
+                        <ul class="bullet-list">
+                            <li>"What is our FERPA data retention policy?" (Compliance)</li>
+                            <li>"How do we handle student PII in our SIS?" (Security)</li>
+                            <li>"What's the PTO policy for remote employees?" (HR)</li>
+                            <li>"Who manages district SSO integrations?" (Engineering)</li>
+                            <li>"What's Leo Garcia's salary band?" (Finance/HR)</li>
+                            <li>"What are state reporting deadlines for California?" (Districts)</li>
+                        </ul>
+                    </div>
+                    <div class="analogy-box animate-in delay-4">
+                        <strong>The Challenge:</strong> Districts need instant answers about student data, compliance, and policies. Support teams waste hours searching when AI could answer in seconds.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 3: The Problem -->
+        <div class="slide" data-slide="3">
+            <div class="slide-header">
+                <div class="slide-number">02 / THE PROBLEM</div>
+                <div class="slide-title">Why Traditional Search Fails</div>
             </div>
             <div class="slide-content">
                 <div class="content-left">
@@ -524,10 +585,10 @@
             </div>
         </div>
         
-        <!-- Slide 3: Architecture Overview -->
-        <div class="slide" data-slide="3">
+        <!-- Slide 4: Architecture Overview -->
+        <div class="slide" data-slide="4">
             <div class="slide-header">
-                <div class="slide-number">02 / ARCHITECTURE</div>
+                <div class="slide-number">03 / ARCHITECTURE</div>
                 <div class="slide-title">System Architecture</div>
                 <div class="slide-subtitle">How all the pieces fit together</div>
             </div>
@@ -577,10 +638,10 @@
             </div>
         </div>
         
-        <!-- Slide 4: Document Upload Flow -->
-        <div class="slide" data-slide="4">
+        <!-- Slide 5: Document Upload Flow -->
+        <div class="slide" data-slide="5">
             <div class="slide-header">
-                <div class="slide-number">03 / DOCUMENT PROCESSING</div>
+                <div class="slide-number">04 / DOCUMENT PROCESSING</div>
                 <div class="slide-title">The Document Upload Journey</div>
             </div>
             <div class="slide-content">
@@ -632,10 +693,10 @@
             </div>
         </div>
         
-        <!-- Slide 5: Embeddings -->
-        <div class="slide" data-slide="5">
+        <!-- Slide 6: Embeddings -->
+        <div class="slide" data-slide="6">
             <div class="slide-header">
-                <div class="slide-number">04 / EMBEDDINGS</div>
+                <div class="slide-number">05 / EMBEDDINGS</div>
                 <div class="slide-title">Teaching AI to Understand Meaning</div>
                 <div class="slide-subtitle">How computers understand that "car" and "automobile" are similar</div>
             </div>
@@ -703,10 +764,10 @@ qdrant.<span class="function">upsert</span>(embedding, metadata)
             </div>
         </div>
         
-        <!-- Slide 6: Vector Database -->
-        <div class="slide" data-slide="6">
+        <!-- Slide 7: Vector Database -->
+        <div class="slide" data-slide="7">
             <div class="slide-header">
-                <div class="slide-number">05 / VECTOR DATABASE</div>
+                <div class="slide-number">06 / VECTOR DATABASE</div>
                 <div class="slide-title">Qdrant - The Smart Filing Cabinet</div>
             </div>
             <div class="slide-content">
@@ -764,10 +825,10 @@ qdrant.<span class="function">upsert</span>(embedding, metadata)
             </div>
         </div>
         
-        <!-- Slide 7: RAG Pipeline -->
-        <div class="slide" data-slide="7">
+        <!-- Slide 8: RAG Pipeline -->
+        <div class="slide" data-slide="8">
             <div class="slide-header">
-                <div class="slide-number">06 / RAG PIPELINE</div>
+                <div class="slide-number">07 / RAG PIPELINE</div>
                 <div class="slide-title">The Query Journey</div>
                 <div class="slide-subtitle">What happens when you ask a question</div>
             </div>
@@ -822,10 +883,10 @@ qdrant.<span class="function">upsert</span>(embedding, metadata)
             </div>
         </div>
         
-        <!-- Slide 8: Why LangChain -->
-        <div class="slide" data-slide="8">
+        <!-- Slide 9: Why LangChain -->
+        <div class="slide" data-slide="9">
             <div class="slide-header">
-                <div class="slide-number">07 / FRAMEWORKS</div>
+                <div class="slide-number">08 / FRAMEWORKS</div>
                 <div class="slide-title">Why LangChain & LangGraph?</div>
             </div>
             <div class="slide-content">
@@ -894,10 +955,10 @@ response = openai.chat.completions.<span class="function">create</span>(
             </div>
         </div>
         
-        <!-- Slide 9: Knowledge Graph -->
-        <div class="slide" data-slide="9">
+        <!-- Slide 10: Knowledge Graph -->
+        <div class="slide" data-slide="10">
             <div class="slide-header">
-                <div class="slide-number">08 / KNOWLEDGE GRAPH</div>
+                <div class="slide-number">09 / KNOWLEDGE GRAPH</div>
                 <div class="slide-title">Neo4j - Understanding Relationships</div>
             </div>
             <div class="slide-content">
@@ -957,10 +1018,10 @@ response = openai.chat.completions.<span class="function">create</span>(
             </div>
         </div>
         
-        <!-- Slide 10: Caching -->
-        <div class="slide" data-slide="10">
+        <!-- Slide 11: Caching -->
+        <div class="slide" data-slide="11">
             <div class="slide-header">
-                <div class="slide-number">09 / OPTIMIZATION</div>
+                <div class="slide-number">10 / OPTIMIZATION</div>
                 <div class="slide-title">Semantic Caching with Redis</div>
             </div>
             <div class="slide-content">
@@ -1026,10 +1087,10 @@ response = openai.chat.completions.<span class="function">create</span>(
             </div>
         </div>
         
-        <!-- Slide 11: Summary -->
-        <div class="slide" data-slide="11">
+        <!-- Slide 12: Summary -->
+        <div class="slide" data-slide="12">
             <div class="slide-header">
-                <div class="slide-number">10 / SUMMARY</div>
+                <div class="slide-number">11 / SUMMARY</div>
                 <div class="slide-title">Technology Stack Summary</div>
             </div>
             <div class="slide-content">
@@ -1086,8 +1147,8 @@ response = openai.chat.completions.<span class="function">create</span>(
             </div>
         </div>
         
-        <!-- Slide 12: Questions -->
-        <div class="slide" data-slide="12">
+        <!-- Slide 13: Questions -->
+        <div class="slide" data-slide="13">
             <div class="center-content">
                 <div class="emoji-large">🙋</div>
                 <div class="big-text">Questions?</div>
@@ -1116,13 +1177,13 @@ response = openai.chat.completions.<span class="function">create</span>(
     
     <div class="navigation">
         <button class="nav-btn" id="prevBtn" onclick="prevSlide()">←</button>
-        <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">12</span></span>
+        <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">13</span></span>
         <button class="nav-btn" id="nextBtn" onclick="nextSlide()">→</button>
     </div>
     
     <script>
         let currentSlide = 1;
-        const totalSlides = 12;
+        const totalSlides = 13;
         
         function showSlide(n) {
             const slides = document.querySelectorAll('.slide');

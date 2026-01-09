@@ -1,16 +1,16 @@
-Employee_ID,Full_Name,Department,Job_Title,Hire_Date,Salary,Email,Office,Team_Size,Certifications,Remote_Eligible
-CSV001,James Wilson,IT,System Administrator,2020-01-15,92000,james.wilson@techcorp.com,Building A,0,"AWS, CCNA, Linux+",Yes
-CSV002,Sarah Connor,Operations,Operations Manager,2019-05-20,105000,sarah.connor@techcorp.com,Building B,12,"PMP, Six Sigma",No
-CSV003,Michael Chen,IT,Network Engineer,2021-03-10,98000,michael.chen@techcorp.com,Building A,0,"CCNP, AWS",Yes
-CSV004,Emily Watson,Customer Service,Support Specialist,2022-07-01,55000,emily.watson@techcorp.com,Building C,0,ITIL,Yes
-CSV005,Robert Taylor,Operations,Logistics Coordinator,2018-11-15,62000,robert.taylor@techcorp.com,Building B,5,APICS,No
-CSV006,Jennifer Lopez,IT,Database Administrator,2020-09-01,115000,jennifer.lopez@techcorp.com,Building A,0,"Oracle DBA, AWS",Yes
-CSV007,William Brown,Customer Service,Customer Success Manager,2021-02-14,78000,william.brown@techcorp.com,Building C,8,Salesforce,Yes
-CSV008,Amanda Green,Operations,Supply Chain Analyst,2019-08-22,72000,amanda.green@techcorp.com,Building B,3,CSCP,No
-CSV009,Christopher Lee,IT,Security Engineer,2022-01-05,125000,christopher.lee@techcorp.com,Building A,0,"CISSP, CEH",Yes
-CSV010,Jessica White,Customer Service,Technical Support Lead,2020-06-30,68000,jessica.white@techcorp.com,Building C,4,CompTIA A+,Yes
-CSV011,Daniel Martinez,Operations,Warehouse Manager,2017-04-18,85000,daniel.martinez@techcorp.com,Building B,15,"APICS, Lean",No
-CSV012,Michelle Kim,IT,Cloud Architect,2023-02-01,145000,michelle.kim@techcorp.com,Building A,0,"AWS Solutions Architect, GCP",Yes
-CSV013,Andrew Johnson,Customer Service,Call Center Supervisor,2021-09-15,58000,andrew.johnson@techcorp.com,Building C,10,HDI,Yes
-CSV014,Laura Davis,Operations,Procurement Specialist,2019-12-01,70000,laura.davis@techcorp.com,Building B,2,CPSM,No
-CSV015,Kevin Thompson,IT,DevSecOps Engineer,2022-11-20,135000,kevin.thompson@techcorp.com,Building A,0,"CKA, AWS Security",Yes
+Employee_ID,Full_Name,Department,Job_Title,Assigned_Region,Districts_Managed,Hire_Date,Salary,Email,Product_Specialty,Certifications,Remote_Eligible
+DST001,James Wilson,District Support,District Success Manager,West Coast,45,2020-01-15,92000,james.wilson@company.com,Student Information System,K-12 Admin Certified,Yes
+DST002,Sarah Connor,Implementation,Senior Implementation Consultant,Midwest,0,2019-05-20,105000,sarah.connor@company.com,Analytics Platform,"PMP, EdTech Certified",Yes
+DST003,Michael Chen,District Support,Technical Support Specialist,Southeast,0,2021-03-10,68000,michael.chen@company.com,Student Information System,Support Certification,Yes
+DST004,Emily Watson,Training,K-12 Training Lead,Northeast,0,2022-07-01,78000,emily.watson@company.com,Learning Management,Google Certified Educator,No
+DST005,Robert Taylor,Implementation,Data Migration Specialist,Southwest,0,2018-11-15,88000,robert.taylor@company.com,Data Migration,"SQL, ETL Certified",Yes
+DST006,Jennifer Lopez,District Support,SIS Support Analyst,West Coast,32,2020-09-01,72000,jennifer.lopez@company.com,Student Information System,SIS Certified,Yes
+DST007,William Brown,Training,Curriculum Specialist,Midwest,0,2021-02-14,75000,william.brown@company.com,Digital Curriculum,K-12 Curriculum Design,No
+DST008,Amanda Green,Implementation,State Reporting Expert,Southeast,0,2019-08-22,95000,amanda.green@company.com,State Reporting,State Reporting Specialist,Yes
+DST009,Christopher Lee,District Support,Student Data Analyst,Northeast,0,2022-01-05,70000,christopher.lee@company.com,Analytics Platform,Data Analytics,Yes
+DST010,Jessica White,Training,LMS Training Coordinator,Southwest,0,2020-06-30,72000,jessica.white@company.com,Learning Management,LMS Certified,No
+DST011,Daniel Martinez,Implementation,Integration Specialist,West Coast,0,2017-04-18,98000,daniel.martinez@company.com,SSO/Integrations,"OAuth, SAML Certified",Yes
+DST012,Michelle Kim,District Support,FERPA Compliance Advisor,National,0,2023-02-01,85000,michelle.kim@company.com,Compliance,"FERPA, CIPP/US",Yes
+DST013,Andrew Johnson,Training,Assessment Training Lead,Midwest,0,2021-09-15,80000,andrew.johnson@company.com,Assessment,Assessment Design,No
+DST014,Laura Davis,Implementation,Enrollment Specialist,Southeast,0,2019-12-01,82000,laura.davis@company.com,Enrollment,Enrollment Specialist,Yes
+DST015,Kevin Thompson,District Support,SIS Support Specialist,Northeast,28,2022-11-20,65000,kevin.thompson@company.com,Gradebook,Gradebook Certified,Yes

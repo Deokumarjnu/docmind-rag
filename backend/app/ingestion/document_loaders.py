@@ -353,6 +353,91 @@ class UnifiedDocumentLoader:
                 }
             ))
         
+        # Create group summary documents for aggregate queries
+        # This enables questions like "total salary in Engineering department"
+        docs.extend(self._create_group_summaries(df, file_path, file_type, sheet_name))
+        
+        return docs
+    
+    def _create_group_summaries(
+        self,
+        df,
+        file_path: Path,
+        file_type: str,
+        sheet_name: Optional[str] = None,
+    ) -> list[Document]:
+        """
+        Create summary documents grouped by categorical columns.
+        
+        This enables aggregate queries like:
+        - "What is the total salary in Engineering department?"
+        - "How many employees are in each location?"
+        """
+        import pandas as pd
+        
+        docs = []
+        
+        # Identify potential grouping columns (categorical with reasonable cardinality)
+        # and numeric columns for aggregation
+        categorical_cols = []
+        numeric_cols = []
+        
+        for col in df.columns:
+            if df[col].dtype == 'object' or str(df[col].dtype) == 'category':
+                unique_count = df[col].nunique()
+                # Only use columns with 2-20 unique values for grouping
+                if 2 <= unique_count <= 20:
+                    categorical_cols.append(col)
+            elif pd.api.types.is_numeric_dtype(df[col]):
+                numeric_cols.append(col)
+        
+        # Create group summaries for each categorical column
+        for group_col in categorical_cols:
+            # Skip ID-like columns
+            if 'id' in group_col.lower() or 'email' in group_col.lower():
+                continue
+                
+            group_parts = [f"# Summary by {group_col}", ""]
+            
+            for group_val, group_df in df.groupby(group_col):
+                group_parts.append(f"## {group_col}: {group_val}")
+                group_parts.append(f"- Count: {len(group_df)} employees")
+                
+                # Add numeric aggregations
+                for num_col in numeric_cols:
+                    if num_col.lower() in ['salary', 'compensation', 'pay', 'wage', 'cost', 'expense', 'budget']:
+                        total = group_df[num_col].sum()
+                        avg = group_df[num_col].mean()
+                        quarterly = total / 4
+                        group_parts.append(f"- Total {num_col}: ${total:,.0f}")
+                        group_parts.append(f"- Average {num_col}: ${avg:,.0f}")
+                        group_parts.append(f"- Quarterly {num_col} Expense: ${quarterly:,.0f}")
+                    elif not any(x in num_col.lower() for x in ['id', 'index', 'row']):
+                        total = group_df[num_col].sum()
+                        avg = group_df[num_col].mean()
+                        group_parts.append(f"- Total {num_col}: {total:,.0f}")
+                        group_parts.append(f"- Average {num_col}: {avg:,.0f}")
+                
+                # List employees in this group
+                name_cols = [c for c in df.columns if any(x in c.lower() for x in ['name', 'employee', 'person'])]
+                if name_cols:
+                    names = group_df[name_cols[0]].tolist()
+                    group_parts.append(f"- Employees: {', '.join(str(n) for n in names)}")
+                
+                group_parts.append("")
+            
+            docs.append(Document(
+                page_content="\n".join(group_parts),
+                metadata={
+                    "source": str(file_path),
+                    "file_type": file_type,
+                    "content_type": "table",
+                    "sheet_name": sheet_name or "default",
+                    "document_section": f"summary_by_{group_col}",
+                    "group_column": group_col,
+                }
+            ))
+        
         return docs
     
     def _load_json(self, file_path: Path) -> list[Document]:
