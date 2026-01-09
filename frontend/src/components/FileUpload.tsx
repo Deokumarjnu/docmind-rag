@@ -129,6 +129,12 @@ export default function FileUpload() {
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'text/csv': ['.csv'],
+      'application/json': ['.json', '.jsonl'],
+      'text/markdown': ['.md', '.markdown'],
       'text/html': ['.html'],
       'text/plain': ['.txt'],
     },
@@ -179,7 +185,7 @@ export default function FileUpload() {
               {isDragActive ? 'Drop files here' : 'Drag & drop documents'}
             </h3>
             <p className="text-white/50 text-sm">
-              or click to browse • PDF, DOCX, HTML, TXT supported
+              or click to browse • PDF, DOCX, XLSX, CSV, JSON, Markdown, HTML, TXT
             </p>
           </div>
         </div>

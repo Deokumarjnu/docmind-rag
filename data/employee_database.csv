@@ -1,0 +1,16 @@
+Employee_ID,Full_Name,Department,Job_Title,Hire_Date,Salary,Email,Office,Team_Size,Certifications,Remote_Eligible
+CSV001,James Wilson,IT,System Administrator,2020-01-15,92000,james.wilson@techcorp.com,Building A,0,"AWS, CCNA, Linux+",Yes
+CSV002,Sarah Connor,Operations,Operations Manager,2019-05-20,105000,sarah.connor@techcorp.com,Building B,12,"PMP, Six Sigma",No
+CSV003,Michael Chen,IT,Network Engineer,2021-03-10,98000,michael.chen@techcorp.com,Building A,0,"CCNP, AWS",Yes
+CSV004,Emily Watson,Customer Service,Support Specialist,2022-07-01,55000,emily.watson@techcorp.com,Building C,0,ITIL,Yes
+CSV005,Robert Taylor,Operations,Logistics Coordinator,2018-11-15,62000,robert.taylor@techcorp.com,Building B,5,APICS,No
+CSV006,Jennifer Lopez,IT,Database Administrator,2020-09-01,115000,jennifer.lopez@techcorp.com,Building A,0,"Oracle DBA, AWS",Yes
+CSV007,William Brown,Customer Service,Customer Success Manager,2021-02-14,78000,william.brown@techcorp.com,Building C,8,Salesforce,Yes
+CSV008,Amanda Green,Operations,Supply Chain Analyst,2019-08-22,72000,amanda.green@techcorp.com,Building B,3,CSCP,No
+CSV009,Christopher Lee,IT,Security Engineer,2022-01-05,125000,christopher.lee@techcorp.com,Building A,0,"CISSP, CEH",Yes
+CSV010,Jessica White,Customer Service,Technical Support Lead,2020-06-30,68000,jessica.white@techcorp.com,Building C,4,CompTIA A+,Yes
+CSV011,Daniel Martinez,Operations,Warehouse Manager,2017-04-18,85000,daniel.martinez@techcorp.com,Building B,15,"APICS, Lean",No
+CSV012,Michelle Kim,IT,Cloud Architect,2023-02-01,145000,michelle.kim@techcorp.com,Building A,0,"AWS Solutions Architect, GCP",Yes
+CSV013,Andrew Johnson,Customer Service,Call Center Supervisor,2021-09-15,58000,andrew.johnson@techcorp.com,Building C,10,HDI,Yes
+CSV014,Laura Davis,Operations,Procurement Specialist,2019-12-01,70000,laura.davis@techcorp.com,Building B,2,CPSM,No
+CSV015,Kevin Thompson,IT,DevSecOps Engineer,2022-11-20,135000,kevin.thompson@techcorp.com,Building A,0,"CKA, AWS Security",Yes

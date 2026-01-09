@@ -78,10 +78,10 @@ class Settings(BaseSettings):
     # Upload Settings
     max_upload_size_mb: int = 100
     allowed_extensions: list[str] = [
-        "pdf", "docx", "html", "txt",  # Original formats
-        "csv", "xlsx", "xls",           # Spreadsheets
-        "json", "jsonl",                # JSON formats
-        "md", "markdown",               # Markdown
+        "pdf", "docx", "doc", "html", "txt",  # Documents
+        "csv", "xlsx", "xls",                  # Spreadsheets
+        "json", "jsonl",                       # JSON formats
+        "md", "markdown",                      # Markdown
     ]
 
     class Config:

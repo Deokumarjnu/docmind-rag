@@ -11,6 +11,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Optional
+import pandas as pd
 
 from langchain_core.documents import Document
 
@@ -292,6 +293,7 @@ class UnifiedDocumentLoader:
         1. Summary document with column info and stats
         2. Row-by-row documents for detailed retrieval
         """
+        
         docs = []
         
         # Create summary document
@@ -328,28 +330,26 @@ class UnifiedDocumentLoader:
         ))
         
         # Create row documents (for detailed retrieval)
-        # Group rows to avoid too many small documents
-        rows_per_doc = 10
-        
-        for i in range(0, len(df), rows_per_doc):
-            chunk_df = df.iloc[i:i + rows_per_doc]
+        # Create ONE document per row for better semantic search
+        # This allows queries like "Leo Garcia salary" to find the exact row
+        for idx, row in df.iterrows():
+            # Convert row to readable format with clear field labels
+            row_parts = []
+            for col, val in row.items():
+                if pd.notna(val):
+                    row_parts.append(f"{col}: {val}")
             
-            # Convert chunk to readable format
-            content_parts = []
-            for idx, row in chunk_df.iterrows():
-                row_text = " | ".join([f"{col}: {val}" for col, val in row.items() if pd.notna(val)])
-                content_parts.append(f"Row {idx}: {row_text}")
+            row_text = "\n".join(row_parts)
             
             docs.append(Document(
-                page_content="\n".join(content_parts),
+                page_content=row_text,
                 metadata={
                     "source": str(file_path),
                     "file_type": file_type,
                     "content_type": "table",
                     "sheet_name": sheet_name or "default",
                     "document_section": "data",
-                    "start_row": i,
-                    "end_row": min(i + rows_per_doc, len(df)),
+                    "row_index": idx,
                 }
             ))
         

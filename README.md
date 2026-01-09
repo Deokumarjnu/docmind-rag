@@ -13,6 +13,19 @@ DocMind RAG is a production-ready document intelligence platform built with:
 
 ## Architecture Overview (Full LangChain Ecosystem)
 
+File formate supported 
+• PDF 
+• DOCX 
+• DOC 
+• HTML 
+• TXT 
+• CSV 
+• XLSX 
+• XLS 
+• JSON 
+• JSONL 
+• Markdown
+
 After reviewing the latest LangChain documentation, we leverage their complete ecosystem:
 
 - **LangChain** for document loaders, text splitters, embeddings, and vector stores

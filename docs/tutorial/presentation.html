@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocMind RAG - Technical Deep Dive</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-pink: #ec4899;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 60px;
+            display: none;
+            flex-direction: column;
+            background: var(--bg-primary);
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .slide-header {
+            margin-bottom: 40px;
+        }
+        
+        .slide-number {
+            font-size: 14px;
+            color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 10px;
+        }
+        
+        .slide-title {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .slide-subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+        
+        .slide-content {
+            flex: 1;
+            display: flex;
+            gap: 40px;
+            overflow: hidden;
+        }
+        
+        .content-left, .content-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .content-full {
+            width: 100%;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .icon-blue { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .icon-purple { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .icon-cyan { background: rgba(6, 182, 212, 0.2); color: var(--accent-cyan); }
+        .icon-green { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .icon-orange { background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); }
+        .icon-pink { background: rgba(236, 72, 153, 0.2); color: var(--accent-pink); }
+        
+        .bullet-list {
+            list-style: none;
+        }
+        
+        .bullet-list li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        .bullet-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .comparison-table th {
+            text-align: left;
+            padding: 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border-bottom: 2px solid var(--accent-blue);
+            color: var(--accent-blue);
+        }
+        
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+        }
+        
+        .comparison-table tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+        
+        .highlight {
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .highlight td {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+        
+        .flow-box {
+            background: var(--bg-card);
+            border: 2px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 16px 24px;
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .flow-box.active-step {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        
+        .flow-arrow {
+            font-size: 24px;
+            color: var(--accent-cyan);
+        }
+        
+        .code-block {
+            background: #1e1e2e;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .code-block .keyword { color: var(--accent-purple); }
+        .code-block .string { color: var(--accent-green); }
+        .code-block .comment { color: var(--text-muted); }
+        .code-block .function { color: var(--accent-blue); }
+        .code-block .number { color: var(--accent-orange); }
+        
+        .analogy-box {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+            border-left: 4px solid var(--accent-purple);
+            padding: 20px;
+            border-radius: 0 12px 12px 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+        
+        .analogy-box::before {
+            content: '💡 Analogy';
+            display: block;
+            font-style: normal;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+        
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 12px 24px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+        
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+        
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .slide-counter {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            transition: width 0.3s;
+            z-index: 100;
+        }
+        
+        .architecture-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            padding: 20px;
+        }
+        
+        .arch-layer {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .arch-label {
+            width: 120px;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .arch-boxes {
+            display: flex;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .arch-box {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 15px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .arch-box.highlight-blue { border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.1); }
+        .arch-box.highlight-purple { border-color: var(--accent-purple); background: rgba(139, 92, 246, 0.1); }
+        .arch-box.highlight-cyan { border-color: var(--accent-cyan); background: rgba(6, 182, 212, 0.1); }
+        .arch-box.highlight-green { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.1); }
+        
+        .connector {
+            text-align: center;
+            color: var(--accent-cyan);
+            font-size: 20px;
+            padding: 10px 0;
+        }
+        
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-blue { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .badge-green { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .badge-orange { background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); }
+        .badge-purple { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        
+        .emoji-large {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .center-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+        }
+        
+        .big-text {
+            font-size: 72px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        
+        .medium-text {
+            font-size: 24px;
+            color: var(--text-secondary);
+            max-width: 600px;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-in {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .delay-5 { animation-delay: 0.5s; opacity: 0; }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <div class="presentation" id="presentation">
+        
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-slide="1">
+            <div class="center-content">
+                <div class="emoji-large">🧠</div>
+                <div class="big-text">DocMind RAG</div>
+                <div class="medium-text">Enterprise Document Intelligence Platform</div>
+                <div style="margin-top: 40px; display: flex; gap: 20px;">
+                    <span class="badge badge-blue">LangChain</span>
+                    <span class="badge badge-purple">LangGraph</span>
+                    <span class="badge badge-green">GPT-4</span>
+                    <span class="badge badge-orange">Qdrant</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 2: The Problem -->
+        <div class="slide" data-slide="2">
+            <div class="slide-header">
+                <div class="slide-number">01 / THE PROBLEM</div>
+                <div class="slide-title">What Problem Are We Solving?</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-left">
+                    <div class="card animate-in delay-1">
+                        <div class="card-title">
+                            <span class="icon icon-orange">❌</span>
+                            Traditional Search Limitations
+                        </div>
+                        <ul class="bullet-list">
+                            <li>Ctrl+F only finds exact matches</li>
+                            <li>Can't search across thousands of documents</li>
+                            <li>Doesn't understand synonyms or context</li>
+                            <li>Can't answer questions in natural language</li>
+                            <li>No synthesis of information from multiple sources</li>
+                        </ul>
+                    </div>
+                    <div class="analogy-box animate-in delay-2">
+                        Imagine a library with millions of books. Traditional search is like an index that only lists exact words. RAG is like having a brilliant librarian who understands what you're really asking.
+                    </div>
+                </div>
+                <div class="content-right">
+                    <div class="card animate-in delay-3">
+                        <div class="card-title">
+                            <span class="icon icon-green">✓</span>
+                            What RAG Provides
+                        </div>
+                        <ul class="bullet-list">
+                            <li><strong>R</strong>etrieval - Find relevant information</li>
+                            <li><strong>A</strong>ugmented - Enhance AI's knowledge</li>
+                            <li><strong>G</strong>eneration - Natural language answers</li>
+                        </ul>
+                    </div>
+                    <div class="stats-grid animate-in delay-4" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="stat-card">
+                            <div class="stat-value">10K+</div>
+                            <div class="stat-label">Documents Searchable</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">&lt;3s</div>
+                            <div class="stat-label">Query Response</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 3: Architecture Overview -->
+        <div class="slide" data-slide="3">
+            <div class="slide-header">
+                <div class="slide-number">02 / ARCHITECTURE</div>
+                <div class="slide-title">System Architecture</div>
+                <div class="slide-subtitle">How all the pieces fit together</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-full">
+                    <div class="architecture-diagram">
+                        <div class="arch-layer animate-in delay-1">
+                            <div class="arch-label">Frontend</div>
+                            <div class="arch-boxes">
+                                <div class="arch-box highlight-blue">React + TypeScript</div>
+                                <div class="arch-box">Chat Interface</div>
+                                <div class="arch-box">File Upload</div>
+                                <div class="arch-box">Document Manager</div>
+                            </div>
+                        </div>
+                        <div class="connector">↓</div>
+                        <div class="arch-layer animate-in delay-2">
+                            <div class="arch-label">API Layer</div>
+                            <div class="arch-boxes">
+                                <div class="arch-box highlight-purple">FastAPI</div>
+                                <div class="arch-box">REST Endpoints</div>
+                                <div class="arch-box">SSE Streaming</div>
+                            </div>
+                        </div>
+                        <div class="connector">↓</div>
+                        <div class="arch-layer animate-in delay-3">
+                            <div class="arch-label">Processing</div>
+                            <div class="arch-boxes">
+                                <div class="arch-box highlight-cyan">LangChain</div>
+                                <div class="arch-box highlight-cyan">LangGraph</div>
+                                <div class="arch-box">Deep Agents</div>
+                                <div class="arch-box">Celery Workers</div>
+                            </div>
+                        </div>
+                        <div class="connector">↓</div>
+                        <div class="arch-layer animate-in delay-4">
+                            <div class="arch-label">Data Layer</div>
+                            <div class="arch-boxes">
+                                <div class="arch-box highlight-green">Qdrant (Vectors)</div>
+                                <div class="arch-box highlight-green">Redis (Cache)</div>
+                                <div class="arch-box highlight-green">Neo4j (Graph)</div>
+                                <div class="arch-box highlight-green">PostgreSQL</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 4: Document Upload Flow -->
+        <div class="slide" data-slide="4">
+            <div class="slide-header">
+                <div class="slide-number">03 / DOCUMENT PROCESSING</div>
+                <div class="slide-title">The Document Upload Journey</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-full">
+                    <div class="flow-diagram animate-in delay-1">
+                        <div class="flow-box">📄 Upload PDF</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">🔍 Classify Pages</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">🤖 Specialist Agents</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">✂️ Chunking</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">🧮 Embedding</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">💾 Vector Store</div>
+                    </div>
+                    <div class="two-col" style="margin-top: 30px;">
+                        <div class="card animate-in delay-2">
+                            <div class="card-title">
+                                <span class="icon icon-purple">🎯</span>
+                                Page Classification
+                            </div>
+                            <table class="comparison-table">
+                                <tr><th>Page Type</th><th>Strategy</th></tr>
+                                <tr><td>📝 Text</td><td>PyMuPDF (fast)</td></tr>
+                                <tr><td>📊 Tables</td><td>Unstructured (preserve structure)</td></tr>
+                                <tr><td>📈 Charts</td><td>GPT-4 Vision (describe)</td></tr>
+                                <tr><td>💻 Code</td><td>AST-based chunking</td></tr>
+                                <tr><td>✍️ Handwriting</td><td>Vision + OCR</td></tr>
+                            </table>
+                        </div>
+                        <div class="card animate-in delay-3">
+                            <div class="card-title">
+                                <span class="icon icon-cyan">🤖</span>
+                                Why Specialist Agents?
+                            </div>
+                            <div class="analogy-box" style="margin-top: 10px;">
+                                Like a hospital with specialists: broken bones → orthopedics, heart issues → cardiology. Each content type needs specialized handling.
+                            </div>
+                            <ul class="bullet-list" style="margin-top: 15px;">
+                                <li>Tables must stay intact (no splitting)</li>
+                                <li>Code needs function-level chunking</li>
+                                <li>Charts need visual description</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 5: Embeddings -->
+        <div class="slide" data-slide="5">
+            <div class="slide-header">
+                <div class="slide-number">04 / EMBEDDINGS</div>
+                <div class="slide-title">Teaching AI to Understand Meaning</div>
+                <div class="slide-subtitle">How computers understand that "car" and "automobile" are similar</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-left">
+                    <div class="card animate-in delay-1">
+                        <div class="card-title">
+                            <span class="icon icon-blue">🗺️</span>
+                            What Are Embeddings?
+                        </div>
+                        <div class="analogy-box">
+                            Imagine a magical map where similar things are placed close together. "King" and "Queen" are close (both royalty). "King" and "Banana" are far apart.
+                        </div>
+                        <ul class="bullet-list" style="margin-top: 15px;">
+                            <li>Each text chunk → 3072 numbers (coordinates)</li>
+                            <li>Similar meaning → close coordinates</li>
+                            <li>Different meaning → far coordinates</li>
+                        </ul>
+                    </div>
+                    <div class="card animate-in delay-2">
+                        <div class="card-title">
+                            <span class="icon icon-green">✓</span>
+                            Why text-embedding-3-large?
+                        </div>
+                        <ul class="bullet-list">
+                            <li>3072 dimensions = more nuance</li>
+                            <li>State-of-the-art accuracy</li>
+                            <li>Handles technical content well</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="content-right">
+                    <div class="card animate-in delay-3">
+                        <div class="card-title">
+                            <span class="icon icon-purple">📊</span>
+                            Model Comparison
+                        </div>
+                        <table class="comparison-table">
+                            <tr><th>Model</th><th>Dims</th><th>Quality</th><th>Cost</th></tr>
+                            <tr><td>ada-002</td><td>1536</td><td>Good</td><td>$</td></tr>
+                            <tr><td>3-small</td><td>1536</td><td>Good</td><td>$</td></tr>
+                            <tr class="highlight"><td>3-large ✓</td><td>3072</td><td>Best</td><td>$$</td></tr>
+                        </table>
+                    </div>
+                    <div class="card animate-in delay-4">
+                        <div class="card-title">
+                            <span class="icon icon-orange">⚡</span>
+                            The Process
+                        </div>
+                        <div class="code-block">
+<span class="comment"># 1. Take text chunk</span>
+text = <span class="string">"The Transformer uses attention..."</span>
+
+<span class="comment"># 2. Send to OpenAI</span>
+embedding = openai.<span class="function">embed</span>(text)
+
+<span class="comment"># 3. Get 3072 numbers back</span>
+[<span class="number">0.023</span>, <span class="number">-0.089</span>, <span class="number">0.145</span>, ... ] <span class="comment"># 3072 dims</span>
+
+<span class="comment"># 4. Store in Qdrant</span>
+qdrant.<span class="function">upsert</span>(embedding, metadata)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 6: Vector Database -->
+        <div class="slide" data-slide="6">
+            <div class="slide-header">
+                <div class="slide-number">05 / VECTOR DATABASE</div>
+                <div class="slide-title">Qdrant - The Smart Filing Cabinet</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-left">
+                    <div class="analogy-box animate-in delay-1">
+                        Imagine a filing cabinet where files automatically arrange themselves by topic. Ask for "vacation policies" and it finds "PTO guidelines" and "time-off procedures" too!
+                    </div>
+                    <div class="card animate-in delay-2">
+                        <div class="card-title">
+                            <span class="icon icon-blue">🔍</span>
+                            Vector vs SQL Search
+                        </div>
+                        <table class="comparison-table">
+                            <tr><th>Feature</th><th>SQL</th><th>Vector</th></tr>
+                            <tr><td>Search type</td><td>Exact match</td><td>Similarity</td></tr>
+                            <tr><td>Understands meaning</td><td>❌</td><td>✅</td></tr>
+                            <tr><td>Handles typos</td><td>❌</td><td>✅</td></tr>
+                            <tr><td>Finds synonyms</td><td>❌</td><td>✅</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="content-right">
+                    <div class="card animate-in delay-3">
+                        <div class="card-title">
+                            <span class="icon icon-purple">🏆</span>
+                            Why Qdrant?
+                        </div>
+                        <table class="comparison-table">
+                            <tr><th>Database</th><th>Pros</th><th>Cons</th></tr>
+                            <tr class="highlight"><td>Qdrant ✓</td><td>Fast, open-source, filtering</td><td>Newer</td></tr>
+                            <tr><td>Pinecone</td><td>Managed, easy</td><td>Expensive, lock-in</td></tr>
+                            <tr><td>Weaviate</td><td>GraphQL, hybrid</td><td>Complex</td></tr>
+                            <tr><td>Chroma</td><td>Simple, local</td><td>Not production-ready</td></tr>
+                        </table>
+                    </div>
+                    <div class="card animate-in delay-4">
+                        <div class="card-title">
+                            <span class="icon icon-green">💾</span>
+                            What We Store
+                        </div>
+                        <div class="code-block">
+{
+  <span class="string">"id"</span>: <span class="string">"uuid-123"</span>,
+  <span class="string">"vector"</span>: [<span class="number">0.023</span>, <span class="number">-0.089</span>, ...], <span class="comment">// 3072 dims</span>
+  <span class="string">"payload"</span>: {
+    <span class="string">"content"</span>: <span class="string">"The Transformer..."</span>,
+    <span class="string">"source"</span>: <span class="string">"paper.pdf"</span>,
+    <span class="string">"page"</span>: <span class="number">5</span>,
+    <span class="string">"content_type"</span>: <span class="string">"text"</span>
+  }
+}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 7: RAG Pipeline -->
+        <div class="slide" data-slide="7">
+            <div class="slide-header">
+                <div class="slide-number">06 / RAG PIPELINE</div>
+                <div class="slide-title">The Query Journey</div>
+                <div class="slide-subtitle">What happens when you ask a question</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-full">
+                    <div class="flow-diagram animate-in delay-1" style="margin-bottom: 30px;">
+                        <div class="flow-box">❓ Query</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">💾 Cache Check</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">✨ Enhance</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">🔍 Retrieve</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">✓ Validate</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">🤖 Generate</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box">📝 Answer</div>
+                    </div>
+                    <div class="two-col">
+                        <div class="card animate-in delay-2">
+                            <div class="card-title">
+                                <span class="icon icon-cyan">🔄</span>
+                                Hybrid Retrieval
+                            </div>
+                            <ul class="bullet-list">
+                                <li><strong>Dense (60%)</strong>: Meaning-based (embeddings)</li>
+                                <li><strong>Sparse (40%)</strong>: Keyword-based (BM25)</li>
+                                <li><strong>Why both?</strong> Dense catches synonyms, sparse catches exact terms</li>
+                            </ul>
+                            <div style="margin-top: 15px; padding: 15px; background: rgba(6, 182, 212, 0.1); border-radius: 8px;">
+                                <strong>Reciprocal Rank Fusion:</strong><br>
+                                <code>Score = Σ 1/(k + rank)</code>
+                            </div>
+                        </div>
+                        <div class="card animate-in delay-3">
+                            <div class="card-title">
+                                <span class="icon icon-purple">🔁</span>
+                                Self-Correction Loop
+                            </div>
+                            <ul class="bullet-list">
+                                <li><strong>Validate Retrieval:</strong> "Are docs relevant?"</li>
+                                <li>If NO → retry with enhanced query</li>
+                                <li><strong>Validate Answer:</strong> "Is answer grounded?"</li>
+                                <li>If NO → retry retrieval</li>
+                                <li>Max 2 retries to prevent loops</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 8: Why LangChain -->
+        <div class="slide" data-slide="8">
+            <div class="slide-header">
+                <div class="slide-number">07 / FRAMEWORKS</div>
+                <div class="slide-title">Why LangChain & LangGraph?</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-left">
+                    <div class="card animate-in delay-1">
+                        <div class="card-title">
+                            <span class="icon icon-orange">❓</span>
+                            Without LangChain
+                        </div>
+                        <div class="code-block">
+<span class="comment"># Manual approach - lots of boilerplate</span>
+response = openai.chat.completions.<span class="function">create</span>(
+    model=<span class="string">"gpt-4"</span>,
+    messages=[{<span class="string">"role"</span>: <span class="string">"user"</span>, ...}]
+)
+<span class="comment"># Now handle: retries, streaming,</span>
+<span class="comment"># different models, prompt templates,</span>
+<span class="comment"># output parsing, chains...</span>
+                        </div>
+                    </div>
+                    <div class="card animate-in delay-2">
+                        <div class="card-title">
+                            <span class="icon icon-green">✓</span>
+                            With LangChain
+                        </div>
+                        <ul class="bullet-list">
+                            <li><strong>Document Loaders:</strong> PDF, DOCX, HTML... (50+ formats)</li>
+                            <li><strong>Text Splitters:</strong> Smart chunking</li>
+                            <li><strong>Embeddings:</strong> Any provider, same interface</li>
+                            <li><strong>Vector Stores:</strong> Qdrant, Pinecone, etc.</li>
+                            <li><strong>Chains:</strong> Connect components</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="content-right">
+                    <div class="card animate-in delay-3">
+                        <div class="card-title">
+                            <span class="icon icon-purple">🔄</span>
+                            Why LangGraph for RAG?
+                        </div>
+                        <div style="padding: 15px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; margin-bottom: 15px;">
+                            <strong>LangChain:</strong> A → B → C (linear)<br>
+                            <strong>LangGraph:</strong> A → B → (if bad) → A → B → C (loops!)
+                        </div>
+                        <ul class="bullet-list">
+                            <li>State management across steps</li>
+                            <li>Conditional edges (if/else)</li>
+                            <li>Self-correction loops</li>
+                            <li>Retry logic built-in</li>
+                        </ul>
+                    </div>
+                    <div class="card animate-in delay-4">
+                        <div class="card-title">
+                            <span class="icon icon-blue">📊</span>
+                            Alternatives
+                        </div>
+                        <table class="comparison-table">
+                            <tr><th>Framework</th><th>Best For</th></tr>
+                            <tr class="highlight"><td>LangChain ✓</td><td>Comprehensive, popular</td></tr>
+                            <tr><td>LlamaIndex</td><td>RAG specifically</td></tr>
+                            <tr><td>Haystack</td><td>Search pipelines</td></tr>
+                            <tr><td>Raw API</td><td>Full control</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 9: Knowledge Graph -->
+        <div class="slide" data-slide="9">
+            <div class="slide-header">
+                <div class="slide-number">08 / KNOWLEDGE GRAPH</div>
+                <div class="slide-title">Neo4j - Understanding Relationships</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-left">
+                    <div class="card animate-in delay-1">
+                        <div class="card-title">
+                            <span class="icon icon-orange">❓</span>
+                            Vector Search Limitation
+                        </div>
+                        <ul class="bullet-list">
+                            <li>Great for: "Find documents about X"</li>
+                            <li>Bad for: "What's connected to X?"</li>
+                            <li>Can't answer: "What technologies does Transformer use?"</li>
+                        </ul>
+                    </div>
+                    <div class="card animate-in delay-2">
+                        <div class="card-title">
+                            <span class="icon icon-cyan">🕸️</span>
+                            What is a Knowledge Graph?
+                        </div>
+                        <div class="analogy-box">
+                            A mind map of your documents. Entities (things) connected by relationships.
+                        </div>
+                        <div class="code-block" style="margin-top: 15px;">
+[Transformer] --uses--> [Attention]
+[Attention] --has_type--> [Self-Attention]
+[BERT] --based_on--> [Transformer]
+[GPT] --based_on--> [Transformer]
+                        </div>
+                    </div>
+                </div>
+                <div class="content-right">
+                    <div class="card animate-in delay-3">
+                        <div class="card-title">
+                            <span class="icon icon-purple">🏆</span>
+                            Why Neo4j?
+                        </div>
+                        <table class="comparison-table">
+                            <tr><th>Graph DB</th><th>Pros</th><th>Cons</th></tr>
+                            <tr class="highlight"><td>Neo4j ✓</td><td>Mature, Cypher, visualization</td><td>Resource heavy</td></tr>
+                            <tr><td>Neptune</td><td>Managed, scalable</td><td>AWS lock-in</td></tr>
+                            <tr><td>ArangoDB</td><td>Multi-model</td><td>Less graph-focused</td></tr>
+                        </table>
+                    </div>
+                    <div class="card animate-in delay-4">
+                        <div class="card-title">
+                            <span class="icon icon-green">💡</span>
+                            When It's Useful
+                        </div>
+                        <ul class="bullet-list">
+                            <li><strong>Multi-hop:</strong> "What do BERT and GPT have in common?"</li>
+                            <li><strong>Relationships:</strong> "What uses Attention?"</li>
+                            <li><strong>Exploration:</strong> "Show everything related to X"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 10: Caching -->
+        <div class="slide" data-slide="10">
+            <div class="slide-header">
+                <div class="slide-number">09 / OPTIMIZATION</div>
+                <div class="slide-title">Semantic Caching with Redis</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-left">
+                    <div class="card animate-in delay-1">
+                        <div class="card-title">
+                            <span class="icon icon-blue">💡</span>
+                            The Problem
+                        </div>
+                        <ul class="bullet-list">
+                            <li>Every API call costs money</li>
+                            <li>Similar questions asked repeatedly</li>
+                            <li>Traditional cache: exact match only</li>
+                        </ul>
+                    </div>
+                    <div class="card animate-in delay-2">
+                        <div class="card-title">
+                            <span class="icon icon-green">✓</span>
+                            Semantic Cache Solution
+                        </div>
+                        <div class="code-block">
+<span class="comment"># Query 1 (cached)</span>
+<span class="string">"What is attention?"</span> → cached
+
+<span class="comment"># Query 2 (95% similar = HIT!)</span>
+<span class="string">"Explain attention mechanism"</span> → cache hit!
+
+<span class="comment"># Query 3 (89% similar = MISS)</span>
+<span class="string">"How does attention work?"</span> → process
+                        </div>
+                    </div>
+                </div>
+                <div class="content-right">
+                    <div class="card animate-in delay-3">
+                        <div class="card-title">
+                            <span class="icon icon-orange">⚙️</span>
+                            Configuration
+                        </div>
+                        <table class="comparison-table">
+                            <tr><th>Setting</th><th>Value</th><th>Why</th></tr>
+                            <tr><td>Threshold</td><td>92%</td><td>Balance accuracy/savings</td></tr>
+                            <tr><td>TTL</td><td>24 hours</td><td>Fresh answers daily</td></tr>
+                            <tr><td>Storage</td><td>Redis</td><td>Microsecond access</td></tr>
+                        </table>
+                    </div>
+                    <div class="card animate-in delay-4">
+                        <div class="card-title">
+                            <span class="icon icon-purple">💰</span>
+                            Cost Savings
+                        </div>
+                        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+                            <div class="stat-card">
+                                <div class="stat-value">70%</div>
+                                <div class="stat-label">Cache Hit Rate</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">$210</div>
+                                <div class="stat-label">Monthly Savings</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 11: Summary -->
+        <div class="slide" data-slide="11">
+            <div class="slide-header">
+                <div class="slide-number">10 / SUMMARY</div>
+                <div class="slide-title">Technology Stack Summary</div>
+            </div>
+            <div class="slide-content">
+                <div class="content-full">
+                    <div class="stats-grid animate-in delay-1" style="margin-bottom: 30px;">
+                        <div class="stat-card">
+                            <div class="stat-value">3072</div>
+                            <div class="stat-label">Embedding Dimensions</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">1000</div>
+                            <div class="stat-label">Chunk Size (chars)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">60:40</div>
+                            <div class="stat-label">Dense:Sparse Ratio</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">92%</div>
+                            <div class="stat-label">Cache Threshold</div>
+                        </div>
+                    </div>
+                    <div class="two-col">
+                        <div class="card animate-in delay-2">
+                            <div class="card-title">
+                                <span class="icon icon-blue">🛠️</span>
+                                Core Stack
+                            </div>
+                            <table class="comparison-table">
+                                <tr><th>Component</th><th>Technology</th></tr>
+                                <tr><td>Frontend</td><td>React + TypeScript</td></tr>
+                                <tr><td>API</td><td>FastAPI</td></tr>
+                                <tr><td>Orchestration</td><td>LangChain + LangGraph</td></tr>
+                                <tr><td>LLM</td><td>GPT-4o</td></tr>
+                                <tr><td>Embeddings</td><td>text-embedding-3-large</td></tr>
+                            </table>
+                        </div>
+                        <div class="card animate-in delay-3">
+                            <div class="card-title">
+                                <span class="icon icon-green">💾</span>
+                                Data Layer
+                            </div>
+                            <table class="comparison-table">
+                                <tr><th>Component</th><th>Technology</th></tr>
+                                <tr><td>Vector Store</td><td>Qdrant</td></tr>
+                                <tr><td>Cache</td><td>Redis</td></tr>
+                                <tr><td>Knowledge Graph</td><td>Neo4j</td></tr>
+                                <tr><td>Conversations</td><td>PostgreSQL</td></tr>
+                                <tr><td>Task Queue</td><td>Celery + Redis</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 12: Questions -->
+        <div class="slide" data-slide="12">
+            <div class="center-content">
+                <div class="emoji-large">🙋</div>
+                <div class="big-text">Questions?</div>
+                <div class="medium-text">Let's discuss any part of the architecture</div>
+                <div style="margin-top: 60px; display: flex; gap: 30px;">
+                    <div class="card" style="padding: 30px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📚</div>
+                        <div style="font-weight: 600;">Documentation</div>
+                        <div style="color: var(--text-muted); font-size: 14px;">ARCHITECTURE.md</div>
+                    </div>
+                    <div class="card" style="padding: 30px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">💻</div>
+                        <div style="font-weight: 600;">Code</div>
+                        <div style="color: var(--text-muted); font-size: 14px;">backend/app/</div>
+                    </div>
+                    <div class="card" style="padding: 30px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🎥</div>
+                        <div style="font-weight: 600;">Video Series</div>
+                        <div style="color: var(--text-muted); font-size: 14px;">10 episodes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()">←</button>
+        <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">12</span></span>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">→</button>
+    </div>
+    
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 12;
+        
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            
+            if (n > totalSlides) currentSlide = 1;
+            if (n < 1) currentSlide = totalSlides;
+            
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+            });
+            
+            slides[currentSlide - 1].classList.add('active');
+            
+            document.getElementById('currentSlide').textContent = currentSlide;
+            document.getElementById('prevBtn').disabled = currentSlide === 1;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides;
+            
+            // Update progress bar
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            // Trigger animations
+            const activeSlide = slides[currentSlide - 1];
+            const animatedElements = activeSlide.querySelectorAll('.animate-in');
+            animatedElements.forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight; // Trigger reflow
+                el.style.animation = null;
+            });
+        }
+        
+        function nextSlide() {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+        
+        function prevSlide() {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+        
+        // Initialize
+        showSlide(currentSlide);
+    </script>
+</body>
+</html>
