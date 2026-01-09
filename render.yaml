@@ -1,5 +1,17 @@
 # Render Blueprint for DocMind RAG
 # Deploy: Connect GitHub repo to Render, it auto-detects this file
+#
+# Required External Services (Free Tiers Available):
+# 1. Qdrant Cloud: https://cloud.qdrant.io (1GB free)
+# 2. Upstash Redis: https://upstash.com (10K commands/day free)
+# 3. Neo4j Aura: https://neo4j.com/cloud/aura-free/ (optional, for knowledge graph)
+#
+# Set these in Render Dashboard > Environment:
+# - OPENAI_API_KEY: Your OpenAI API key
+# - QDRANT_URL: https://your-cluster.qdrant.io
+# - QDRANT_API_KEY: Your Qdrant Cloud API key
+# - REDIS_URL: redis://default:xxx@your-redis.upstash.io:6379
+# - NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD (optional)
 
 services:
   # Backend API
@@ -8,17 +20,46 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    plan: free
+    plan: starter  # $7/mo - 512MB RAM (free tier may OOM with ML models)
+    healthCheckPath: /health
     envVars:
+      # OpenAI (required)
       - key: OPENAI_API_KEY
         sync: false  # Set manually in Render dashboard
-      - key: QDRANT_HOST
-        sync: false  # Set to your Qdrant Cloud URL
+      
+      # Qdrant Cloud (required for vector search)
+      - key: QDRANT_URL
+        sync: false  # e.g., https://xxx-xxx.aws.cloud.qdrant.io
       - key: QDRANT_API_KEY
-        sync: false  # Set to your Qdrant Cloud API key
+        sync: false
+      
+      # Redis - Upstash (required for caching)
       - key: REDIS_URL
-        sync: false  # Set to your Upstash Redis URL
-      - key: USE_QDRANT_CLOUD
+        sync: false  # e.g., rediss://default:xxx@xxx.upstash.io:6379
+      
+      # PostgreSQL - Render managed (for conversation memory)
+      - key: POSTGRES_URL
+        fromDatabase:
+          name: docmind-db
+          property: connectionString
+      
+      # Neo4j Aura (optional - for knowledge graph)
+      - key: NEO4J_URI
+        sync: false  # e.g., neo4j+s://xxx.databases.neo4j.io
+      - key: NEO4J_USER
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
+      
+      # App Configuration
+      - key: DEBUG
+        value: "false"
+      - key: CACHE_ENABLED
         value: "true"
-    healthCheckPath: /health
 
+# Render Managed PostgreSQL (free tier: 1GB, 90-day expiry)
+databases:
+  - name: docmind-db
+    plan: free
+    databaseName: docmind
+    user: docmind
