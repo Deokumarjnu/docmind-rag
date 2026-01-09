@@ -13,7 +13,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://docmind-backend.onrender.com/api/$1"
+      "dest": "https://docmind-rag.onrender.com/api/$1"
     },
     {
       "src": "/(.*)",
@@ -21,7 +21,7 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://docmind-backend.onrender.com"
+    "VITE_API_URL": "https://docmind-rag.onrender.com"
   }
 }
 
