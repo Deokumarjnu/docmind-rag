@@ -16,7 +16,7 @@ from langgraph.graph import END, StateGraph
 
 from app.config import settings
 from app.retrievers.hybrid_retriever import HybridRetriever
-from app.retrievers.reranker import CrossEncoderReranker
+from app.retrievers.reranker import LLMReranker
 from app.retrievers.query_expander import QueryExpander
 from app.vectorstore.store import similarity_search_with_score
 
@@ -418,7 +418,8 @@ class AgenticRAG:
         self.reranker = None
         if use_reranker:
             try:
-                self.reranker = CrossEncoderReranker()
+                # Use LLM reranker instead of CrossEncoder (saves ~500MB memory)
+                self.reranker = LLMReranker()
             except Exception as e:
                 logger.warning(f"Reranker initialization failed: {e}")
         

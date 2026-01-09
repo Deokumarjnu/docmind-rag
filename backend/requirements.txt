@@ -12,9 +12,8 @@ langchain-text-splitters
 langgraph
 langserve
 
-# Document Processing
+# Document Processing (lightweight - no unstructured[pdf] for memory savings)
 pymupdf
-unstructured[pdf]
 python-docx
 beautifulsoup4
 docx2txt
@@ -27,17 +26,15 @@ xlrd
 # Markdown Support
 markdown
 
-# Vector Store
+# Vector Store (Qdrant only - chromadb removed for memory savings)
 qdrant-client
 langchain-qdrant
-chromadb
 
 # Embeddings and LLM
 openai
 tiktoken
 
-# NumPy (pinned <2 for PyTorch compatibility on Intel Macs)
-# PyTorch 2.5+ only supports Apple Silicon, so Intel Macs need torch<=2.4 which requires numpy<2
+# NumPy
 numpy<2
 
 # Observability
@@ -46,10 +43,10 @@ langsmith
 # BM25 for Hybrid Retrieval
 rank-bm25
 
-# Reranking
-sentence-transformers
+# Reranking - USE OPENAI INSTEAD OF sentence-transformers (saves ~500MB)
+# sentence-transformers removed - use LLM-based reranking instead
 
-# Scientific computing (pinned for pre-built wheels)
+# Scientific computing
 scipy>=1.11.0
 
 # Language Detection
