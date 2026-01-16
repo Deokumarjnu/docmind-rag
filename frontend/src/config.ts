@@ -12,7 +12,8 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 export const API_ENDPOINTS = {
   query: `${API_BASE_URL}/api/query`,
   queryStream: `${API_BASE_URL}/api/query/stream`,
-  upload: `${API_BASE_URL}/api/upload`,
+  upload: `${API_BASE_URL}/api/upload/sync`,  // Use sync upload (no Redis/Celery required)
+  uploadAsync: `${API_BASE_URL}/api/upload`,  // Async upload (requires Redis/Celery)
   uploadStatus: (taskId: string) => `${API_BASE_URL}/api/upload/status/${taskId}`,
   documents: `${API_BASE_URL}/api/documents`,
   document: (id: string) => `${API_BASE_URL}/api/documents/${encodeURIComponent(id)}`,
